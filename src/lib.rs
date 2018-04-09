@@ -2,6 +2,7 @@
 
 mod agent;
 mod interface;
+mod storage;
 
 
 #[cfg(test)]

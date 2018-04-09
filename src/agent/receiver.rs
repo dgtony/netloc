@@ -4,3 +4,5 @@
 /// - Bootstrap response;
 /// - Location request (foreign);
 /// - Location response (for the local request).
+
+use storage;
