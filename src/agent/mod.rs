@@ -5,8 +5,8 @@
 /// - computation of coordinates
 /// - overlay network discovery (Gossip)
 
-
 mod receiver;
 mod transmitter;
+mod proto;
 
 use super::storage;

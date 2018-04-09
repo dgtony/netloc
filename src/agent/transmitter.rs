@@ -8,21 +8,16 @@ use std::time::Duration;
 use std::thread;
 use std::net::UdpSocket;
 
-
 use storage::SharedStorage;
 
 const GOSSIP_MAX_NEIGHBOURS_IN_MSG: u8 = 4;
-
 
 pub struct Transmitter {
     store: SharedStorage,
     transmission_interval: Duration,
     sock: UdpSocket,
-
     // todo
-
 }
-
 
 impl Transmitter {
     /// Create new transmitter object
@@ -35,7 +30,8 @@ impl Transmitter {
     }
 
     /// Start sending probes
-    pub fn run(&self) -> io::Result<()> { // fixme mb change to custom error?
+    pub fn run(&self) -> io::Result<()> {
+        // fixme mb change to custom error?
         loop {
             let s = self.store.lock().unwrap();
 

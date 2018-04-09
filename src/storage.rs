@@ -2,9 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-
 pub type SharedStorage = Arc<Mutex<Storage>>;
-
 
 pub struct NodeList(pub Vec<Node>);
 
@@ -20,26 +18,21 @@ impl Iterator for NodeList {
 pub struct Node {
 
     // todo
-
 }
 
 /// Internal representation of node's info
-struct NodeInfo {
-
-}
-
+struct NodeInfo {}
 
 pub struct Storage {
 
     // todo
-
 }
 
 impl Storage {
     /// Create empty storage
     pub fn new() -> Self {
         // todo
-        Storage{}
+        Storage {}
     }
 
     /// Return 'max_nodes' randomly chosen from all currently known to local node.
@@ -47,7 +40,6 @@ impl Storage {
     /// records will be returned.
     /// Return NOne ff storage is empty.
     pub fn get_random_neighbours(&self, max_nodes: u8) -> Option<NodeList> {
-
         // todo
 
         None
