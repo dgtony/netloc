@@ -149,13 +149,18 @@ mod tests {
 
     #[test]
     fn str_deserialization_no_str() {
-        // only length - return rest without zero length prefix
-        let data = &[0];
+        // only length - must return rest without zero length prefix
+        let data = &[0, 1, 2, 3];
         if let Some((s, rest)) = deserialize_str(data) {
             assert_eq!(s, "");
-            assert_eq!(rest, &[]);
+            assert_eq!(rest, &[1, 2, 3]);
         } else {
             panic!("cannot deserialize string");
         }
+    }
+
+    #[test]
+    fn str_deserialization_bad_len_prefix() {
+        assert_eq!(deserialize_str(&[12, 23, 32]), None);
     }
 }
