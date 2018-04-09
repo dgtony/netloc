@@ -2,35 +2,14 @@
 ///
 /// Exchange location info between nodes.
 
+extern crate byteorder;
+
 mod bootstrap;
+mod types;
 
 use std::str::from_utf8;
 
 use storage;
-
-
-pub enum MsgType {
-    BootstrapReq,
-    BootstrapResp,
-}
-
-impl MsgType {
-    fn to_code(&self) -> u8 {
-        match *self {
-            MsgType::BootstrapReq => 1,
-            MsgType::BootstrapResp => 2,
-        }
-    }
-
-    fn from_code(code: u8) -> Option<MsgType> {
-        match code {
-            1 => Some(MsgType::BootstrapReq),
-            2 => Some(MsgType::BootstrapResp),
-
-            _ => None,
-        }
-    }
-}
 
 // fixme do we really need a trait?
 trait BinarySerializable {
@@ -45,6 +24,7 @@ trait BinaryDeserializable {
     fn deserialize(&self, data: &[u8]) -> Option<Self::Item>;
 }
 
+/* Strings */
 
 /// Serialize short strings.
 ///
@@ -61,7 +41,13 @@ fn serialize_str(s: &str) -> Option<Vec<u8>> {
     let str_bytes = s.as_bytes();
     let str_bytes_len = str_bytes.len();
 
-    if str_bytes_len < 1 || str_bytes_len > 254 {
+    // empty string
+    if str_bytes_len < 1 {
+        return Some(vec![0]);
+    }
+
+    // too long
+    if str_bytes_len > 254 {
         return None;
     }
 
@@ -73,7 +59,6 @@ fn serialize_str(s: &str) -> Option<Vec<u8>> {
 }
 
 /// Consume and deserialize first string in data
-//fn deserialize_str(data: &mut Vec<u8>) -> Option<String> {
 fn deserialize_str(data: &[u8]) -> Option<(&str, &[u8])> {
     // empty buffer
     if data.len() < 1 {
@@ -112,7 +97,7 @@ mod tests {
         );
 
         // empty
-        assert_eq!(serialize_str(""), None);
+        assert_eq!(serialize_str(""), Some(vec![0]));
 
         // too long
         let long: String = ['x'; 300].iter().collect();
