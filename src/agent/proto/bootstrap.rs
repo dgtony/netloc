@@ -13,10 +13,19 @@ use super::*;
 /// Send it to bootstrap server in order to obtain some neighbour's addresses
 pub struct BootstrapRequest<'a> {
     local_name: &'a str,
-    // todo
+    // todo ?
 }
 
-impl<'a> BinarySerialized for BootstrapRequest<'a> {
+impl <'a> BootstrapRequest<'a> {
+    pub fn new(local_name: &'a str) -> Self {
+        BootstrapRequest {
+            local_name,
+        }
+    }
+}
+
+
+impl<'a> BinarySerializable for BootstrapRequest<'a> {
     fn serialize(&self) -> Option<Vec<u8>> {
         let mut name_serialized = serialize_str(self.local_name)?;
 
@@ -24,5 +33,61 @@ impl<'a> BinarySerialized for BootstrapRequest<'a> {
         name_serialized.insert(0, MsgType::BootstrapReq.to_code());
 
         Some(name_serialized)
+    }
+}
+
+
+pub struct BootstrapResponse {
+    neighbours: storage::NodeList,
+}
+
+impl BootstrapResponse {
+    fn empty() -> Self {
+        BootstrapResponse { neighbours: storage::NodeList(Vec::new()) }
+    }
+}
+
+
+impl BinaryDeserializable for BootstrapResponse {
+    type Item = Self;
+
+    fn deserialize(&self, data: &[u8]) -> Option<Self> {
+        let mut cursor = 0;
+        let data_len = data.len();
+
+        let msg = BootstrapResponse::empty();
+
+        while cursor < data_len {
+            let next_str_size = data.get(cursor)?;
+
+            // todo follow up
+
+        }
+
+
+
+        None
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serialize_bootstrap_request() {
+        let req = BootstrapRequest::new("test");
+        assert_eq!(req.serialize(), Some(vec![1, 4, 116, 101, 115, 116]));
+
+        let empty = BootstrapRequest::new("");
+        assert_eq!(empty.serialize(), None);
+    }
+
+    #[test]
+    fn deserialize_bootstrap_response() {
+
+        // todo
+
     }
 }

@@ -4,6 +4,11 @@
 
 mod bootstrap;
 
+use std::str::from_utf8;
+
+use storage;
+
+
 pub enum MsgType {
     BootstrapReq,
     BootstrapResp,
@@ -28,10 +33,18 @@ impl MsgType {
 }
 
 // fixme do we really need a trait?
-trait BinarySerialized {
+trait BinarySerializable {
     // fixme mb change to Result<Vec<u8>, ? SomeErr ? >
     fn serialize(&self) -> Option<Vec<u8>>;
 }
+
+trait BinaryDeserializable {
+    type Item;
+
+    // fixme mb change to Result<Self::Item, ? SomeErr ? >
+    fn deserialize(&self, data: &[u8]) -> Option<Self::Item>;
+}
+
 
 /// Serialize short strings.
 ///
@@ -59,6 +72,30 @@ fn serialize_str(s: &str) -> Option<Vec<u8>> {
     Some(buff)
 }
 
+/// Consume and deserialize first string in data
+//fn deserialize_str(data: &mut Vec<u8>) -> Option<String> {
+fn deserialize_str(data: &[u8]) -> Option<(&str, &[u8])> {
+    // empty buffer
+    if data.len() < 1 {
+        return None;
+    }
+
+    let str_len = *data.get(0)? as usize;
+
+    // bad length prefix
+    if data.len() < str_len + 1 {
+        return None;
+    }
+
+    // move one byte
+    let data = &data[1..];
+    let (str_bytes, rest) = data.split_at(str_len as usize);
+    // will break if not valid UTF-8
+    let s = from_utf8(str_bytes).ok()?;
+    Some((s, rest))
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,5 +117,45 @@ mod tests {
         // too long
         let long: String = ['x'; 300].iter().collect();
         assert_eq!(serialize_str(long.as_str()), None);
+    }
+
+    #[test]
+    fn str_deserialization_exact() {
+        let data = vec![4, 116, 101, 115, 116];
+        if let Some((s, rest)) = deserialize_str(&data) {
+            assert_eq!(s, "test");
+            assert_eq!(rest, &[]);
+        } else {
+            panic!("cannot deserialize string");
+        }
+    }
+
+    #[test]
+    fn str_deserialization_redundant() {
+        let data = vec![4, 116, 101, 115, 116, 112, 221, 12];
+        if let Some((s, rest)) = deserialize_str(&data) {
+            assert_eq!(s, "test");
+            assert_eq!(rest, &[112, 221, 12]);
+        } else {
+            panic!("cannot deserialize string");
+        }
+    }
+
+    #[test]
+    fn str_deserialization_empty() {
+        let data = vec![];
+        assert_eq!(deserialize_str(&data), None);
+    }
+
+    #[test]
+    fn str_deserialization_no_str() {
+        // only length - return rest without zero length prefix
+        let data = &[0];
+        if let Some((s, rest)) = deserialize_str(data) {
+            assert_eq!(s, "");
+            assert_eq!(rest, &[]);
+        } else {
+            panic!("cannot deserialize string");
+        }
     }
 }
