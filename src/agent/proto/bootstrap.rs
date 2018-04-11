@@ -55,7 +55,7 @@ impl<'a> BinarySerializable<'a> for BootstrapRequest<'a> {
 ///
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct BootstrapResponse {
-    neighbours: storage::NodeList,
+    neighbours: NodeList,
 }
 
 impl BootstrapResponse {

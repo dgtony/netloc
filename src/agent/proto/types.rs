@@ -30,6 +30,8 @@ impl MsgType {
 
 /* Node information */
 
+pub type NodeList = Vec<NodeInfo>;
+
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct NodeFlags {
     is_addr_ipv6: bool,

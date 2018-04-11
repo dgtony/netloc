@@ -3,8 +3,9 @@
 /// Exchange location info between nodes.
 extern crate byteorder;
 
-pub mod bootstrap;
 mod types;
+mod bootstrap;
+mod probe;
 
 pub use self::types::*;
 

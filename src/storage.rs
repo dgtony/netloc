@@ -2,11 +2,9 @@
 
 use std::sync::{Arc, Mutex};
 
-use agent::{NodeCoordinates, NodeFlags, NodeInfo};
+use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
-
-pub type NodeList = Vec<NodeInfo>;
 
 //impl Iterator for NodeList {
 //    type Item = NodeInfo;
