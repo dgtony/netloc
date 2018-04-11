@@ -146,4 +146,13 @@ mod tests {
     fn str_deserialization_bad_len_prefix() {
         assert_eq!(deserialize_str(&[12, 23, 32]), None);
     }
+
+    #[test]
+    fn codec_homomorphism() {
+        let s = "some arbitrary text";
+        let encoded = serialize_str(s).unwrap();
+        let (decoded, rest) = deserialize_str(&encoded).unwrap();
+        assert_eq!(decoded, s);
+        assert_eq!(rest.len(), 0);
+    }
 }
