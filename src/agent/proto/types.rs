@@ -149,11 +149,14 @@ impl NodeInfo {
 
 
     pub fn deserialize(data: &[u8]) -> Option<(Self, &[u8])> {
-        let mut unparsed = &data[1..];
+        let mut unparsed = &data[..];
 
+        // todo decode flags
         let addr = match *data.get(0)? {
             // read IPv4
             0 => {
+                unparsed = &unparsed[1..];
+
                 if unparsed.len() < 6 {
                     return None;
                 }
@@ -165,6 +168,8 @@ impl NodeInfo {
 
             // read IPv6
             1 => {
+                unparsed = &unparsed[1..];
+
                 if unparsed.len() < 18 {
                     return None;
                 }

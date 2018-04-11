@@ -2,26 +2,19 @@
 
 use std::sync::{Arc, Mutex};
 
+use agent::{NodeInfo, NodeFlags, NodeCoordinates};
+
 pub type SharedStorage = Arc<Mutex<Storage>>;
 
-pub struct NodeList(pub Vec<Node>);
+pub type NodeList = Vec<NodeInfo>;
 
-impl Iterator for NodeList {
-    type Item = Node;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.pop()
-    }
-}
-
-/// Public node info, used to create probe requests
-pub struct Node {
-
-    // todo
-}
-
-/// Internal representation of node's info
-struct NodeInfo {}
+//impl Iterator for NodeList {
+//    type Item = NodeInfo;
+//
+//    fn next(&mut self) -> Option<Self::Item> {
+//        self.0.pop()
+//    }
+//}
 
 pub struct Storage {
 

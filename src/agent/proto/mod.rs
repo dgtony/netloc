@@ -3,24 +3,23 @@
 /// Exchange location info between nodes.
 extern crate byteorder;
 
-mod bootstrap;
+pub mod bootstrap;
 mod types;
+
+pub use self::types::*;
 
 use std::str::from_utf8;
 
 use storage;
 
 // fixme do we really need a trait?
-trait BinarySerializable {
-    // fixme mb change to Result<Vec<u8>, ? SomeErr ? >
-    fn serialize(&self) -> Option<Vec<u8>>;
-}
-
-trait BinaryDeserializable {
+trait BinarySerializable<'de> {
     type Item;
 
-    // fixme mb change to Result<Self::Item, ? SomeErr ? >
-    fn deserialize(&self, data: &[u8]) -> Option<Self::Item>;
+    // fixme mb change to Result<Vec<u8>, ? SomeErr ? >
+    fn serialize(&self) -> Option<Vec<u8>>;
+    // data == msg w/o first 'message_type' byte!
+    fn deserialize(data: &'de [u8]) -> Option<Self::Item>;
 }
 
 /* Strings */

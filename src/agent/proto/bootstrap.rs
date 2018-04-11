@@ -1,5 +1,7 @@
 /// Bootstrap messages
 
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
 use super::*;
 
 /// First message while storage is empty
@@ -11,9 +13,9 @@ use super::*;
 /// +----------+-------------------+
 ///
 /// Send it to bootstrap server in order to obtain some neighbour's addresses
+#[derive(Debug, PartialOrd, PartialEq)]
 pub struct BootstrapRequest<'a> {
     local_name: &'a str,
-    // todo ?
 }
 
 impl<'a> BootstrapRequest<'a> {
@@ -22,7 +24,9 @@ impl<'a> BootstrapRequest<'a> {
     }
 }
 
-impl<'a> BinarySerializable for BootstrapRequest<'a> {
+impl<'a> BinarySerializable<'a> for BootstrapRequest<'a> {
+    type Item = Self;
+
     fn serialize(&self) -> Option<Vec<u8>> {
         let mut name_serialized = serialize_str(self.local_name)?;
 
@@ -31,40 +35,61 @@ impl<'a> BinarySerializable for BootstrapRequest<'a> {
 
         Some(name_serialized)
     }
+
+    fn deserialize(data: &'a [u8]) -> Option<Self> {
+        let (name, _) = deserialize_str(data)?;
+        Some(BootstrapRequest { local_name: name })
+    }
 }
 
+/// Bootstrap server response
+///
+/// +----------+-------------------------------------------+
+/// | MSG_TYPE |    information about 0-4 random nodes     |
+/// +----------+----------+----------+----------+----------+
+/// |    u8    | NodeInfo | NodeInfo | NodeInfo | NodeInfo |
+/// +----------+----------+----------+----------+----------+
+///
+/// Number of NodeInfo records in response depends on number of
+/// active nodes in network and bootstrap sever awareness.
+///
+#[derive(Debug, PartialOrd, PartialEq)]
 pub struct BootstrapResponse {
     neighbours: storage::NodeList,
 }
 
 impl BootstrapResponse {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         BootstrapResponse {
-            neighbours: storage::NodeList(Vec::new()),
+            neighbours: Vec::new(),
         }
     }
 }
 
-impl BinaryDeserializable for BootstrapResponse {
+impl <'de> BinarySerializable<'de> for BootstrapResponse {
     type Item = Self;
 
-    fn deserialize(&self, data: &[u8]) -> Option<Self> {
-        //        let mut cursor = 0;
-        //        let data_len = data.len();
+    fn serialize(&self) -> Option<Vec<u8>> {
+        let mut msg_buff = Vec::new();
+        msg_buff.insert(0, types::MsgType::BootstrapResp.to_code());
+        // serialize neighbours
+        self.neighbours.iter().for_each(|n| msg_buff.extend(n.serialize()));
 
-        let msg = BootstrapResponse::empty();
+        Some(msg_buff)
+    }
 
+    fn deserialize(data: &'de [u8]) -> Option<Self> {
+        let mut msg = BootstrapResponse::empty();
         let mut unparsed = &data[..];
 
-        while unparsed.len() > 0 {
-            //let next_str_size = data.get(cursor)?;
-
-            let (name, rest) = deserialize_str(unparsed)?;
-
-            // todo follow up
+        while let Some((info, rest)) = NodeInfo::deserialize(unparsed) {
+            // add node info
+            msg.neighbours.push(info);
+            // move buffer
+            unparsed = rest;
         }
 
-        None
+        Some(msg)
     }
 }
 
@@ -82,9 +107,27 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_bootstrap_response() {
+    fn codec_homomorphism_bootstrap_request() {
+        let req = BootstrapRequest::new("test_node");
 
-        // todo
+        let encoded = req.serialize().unwrap();
+        let decoded = BootstrapRequest::deserialize(&encoded[1..]).unwrap();
 
+        assert_eq!(req, decoded);
+    }
+
+    #[test]
+    fn codec_homomorphism_bootstrap_response() {
+        let nodes = vec![
+            NodeInfo::new(IpAddr::from(Ipv4Addr::new(1, 2, 3, 4)), 1001, "first".to_string()),
+            NodeInfo::new(IpAddr::from(Ipv4Addr::new(10, 252, 33, 17)), 1002, "second".to_string()),
+            NodeInfo::new(IpAddr::from(Ipv4Addr::new(221, 3, 12, 173)), 1003, "third".to_string()),
+        ];
+        let resp = BootstrapResponse { neighbours: nodes };
+
+        let encoded = resp.serialize().unwrap();
+        let decoded = BootstrapResponse::deserialize(&encoded[1..]).unwrap();
+
+        assert_eq!(resp, decoded);
     }
 }

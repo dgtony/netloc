@@ -9,4 +9,6 @@ mod receiver;
 mod transmitter;
 mod proto;
 
+pub use self::proto::*;
+
 use super::storage;
