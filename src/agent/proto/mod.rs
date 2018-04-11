@@ -1,7 +1,6 @@
 /// UDP-based communication protocol.
 ///
 /// Exchange location info between nodes.
-
 extern crate byteorder;
 
 mod bootstrap;
@@ -79,7 +78,6 @@ fn deserialize_str(data: &[u8]) -> Option<(&str, &[u8])> {
     let s = from_utf8(str_bytes).ok()?;
     Some((s, rest))
 }
-
 
 #[cfg(test)]
 mod tests {
