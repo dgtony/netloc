@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use agent::{NodeInfo, NodeFlags, NodeCoordinates};
+use agent::{NodeCoordinates, NodeFlags, NodeInfo};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
 

@@ -66,14 +66,16 @@ impl BootstrapResponse {
     }
 }
 
-impl <'de> BinarySerializable<'de> for BootstrapResponse {
+impl<'de> BinarySerializable<'de> for BootstrapResponse {
     type Item = Self;
 
     fn serialize(&self) -> Option<Vec<u8>> {
         let mut msg_buff = Vec::new();
         msg_buff.insert(0, types::MsgType::BootstrapResp.to_code());
         // serialize neighbours
-        self.neighbours.iter().for_each(|n| msg_buff.extend(n.serialize()));
+        self.neighbours
+            .iter()
+            .for_each(|n| msg_buff.extend(n.serialize()));
 
         Some(msg_buff)
     }
@@ -119,9 +121,21 @@ mod tests {
     #[test]
     fn codec_homomorphism_bootstrap_response() {
         let nodes = vec![
-            NodeInfo::new(IpAddr::from(Ipv4Addr::new(1, 2, 3, 4)), 1001, "first".to_string()),
-            NodeInfo::new(IpAddr::from(Ipv4Addr::new(10, 252, 33, 17)), 1002, "second".to_string()),
-            NodeInfo::new(IpAddr::from(Ipv4Addr::new(221, 3, 12, 173)), 1003, "third".to_string()),
+            NodeInfo::new(
+                IpAddr::from(Ipv4Addr::new(1, 2, 3, 4)),
+                1001,
+                "first".to_string(),
+            ),
+            NodeInfo::new(
+                IpAddr::from(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, 8)),
+                1002,
+                "second".to_string(),
+            ),
+            NodeInfo::new(
+                IpAddr::from(Ipv4Addr::new(10, 252, 33, 17)),
+                1003,
+                "third".to_string(),
+            ),
         ];
         let resp = BootstrapResponse { neighbours: nodes };
 

@@ -32,9 +32,24 @@ impl MsgType {
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct NodeFlags {
-    // any ?
+    is_addr_ipv6: bool,
 }
 
+impl NodeFlags {
+    fn serialize(&self) -> u8 {
+        let is_addr_ipv6_flag: u8 = if self.is_addr_ipv6 { 1 } else { 0 };
+
+        // concat flags
+        let flags: u8 = is_addr_ipv6_flag;
+        flags
+    }
+
+    fn deserialize(data: u8) -> Self {
+        let is_addr_ipv6 = if (data & 0x01) == 1 { true } else { false };
+
+        NodeFlags { is_addr_ipv6 }
+    }
+}
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct NodeCoordinates {
@@ -46,7 +61,7 @@ pub struct NodeCoordinates {
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct NodeInfo {
-    //flags: NodeFlags,
+    flags: NodeFlags,
     ip: IpAddr,
     port: u16,
     name: String,
@@ -56,7 +71,16 @@ pub struct NodeInfo {
 impl NodeInfo {
     /// Create node info record with empty coordinates
     pub fn new(ip: IpAddr, port: u16, name: String) -> Self {
+        // set initial flags
+        let is_addr_ipv6 = match ip {
+            Ipv4Addr => false,
+            Ipv6Addr => true,
+        };
+
+        let flags = NodeFlags { is_addr_ipv6 };
+
         NodeInfo {
+            flags,
             ip,
             port,
             name,
@@ -147,60 +171,47 @@ impl NodeInfo {
         msg_buff
     }
 
-
     pub fn deserialize(data: &[u8]) -> Option<(Self, &[u8])> {
-        let mut unparsed = &data[..];
+        // flags + IPv4 + port + empty name + coordinates
+        if data.len() < 12 {
+            return None;
+        }
 
-        // todo decode flags
-        let addr = match *data.get(0)? {
-            // read IPv4
-            0 => {
-                unparsed = &unparsed[1..];
+        let flags = NodeFlags::deserialize(data[0]);
+        let mut unparsed = &data[1..];
 
-                if unparsed.len() < 6 {
-                    return None;
-                }
-
-                let octets: &[u8; 4] = &[unparsed[0], unparsed[1], unparsed[2], unparsed[3]];
-                unparsed = &unparsed[4..];
-                Some(IpAddr::from(Ipv4Addr::from(*octets)))
+        let addr = if flags.is_addr_ipv6 {
+            if unparsed.len() < 18 {
+                return None;
             }
 
-            // read IPv6
-            1 => {
-                unparsed = &unparsed[1..];
+            let octets: &[u8; 16] = &[
+                unparsed[0],
+                unparsed[1],
+                unparsed[2],
+                unparsed[3],
+                unparsed[4],
+                unparsed[5],
+                unparsed[6],
+                unparsed[7],
+                unparsed[8],
+                unparsed[9],
+                unparsed[10],
+                unparsed[11],
+                unparsed[12],
+                unparsed[13],
+                unparsed[14],
+                unparsed[15],
+            ];
+            unparsed = &unparsed[16..];
+            IpAddr::from(Ipv6Addr::from(*octets))
+        } else {
+            let octets: &[u8; 4] = &[unparsed[0], unparsed[1], unparsed[2], unparsed[3]];
+            unparsed = &unparsed[4..];
+            IpAddr::from(Ipv4Addr::from(*octets))
+        };
 
-                if unparsed.len() < 18 {
-                    return None;
-                }
-
-                //let octets = &unparsed[..16];
-                let octets: &[u8; 16] = &[
-                    unparsed[0],
-                    unparsed[1],
-                    unparsed[2],
-                    unparsed[3],
-                    unparsed[4],
-                    unparsed[5],
-                    unparsed[6],
-                    unparsed[7],
-                    unparsed[8],
-                    unparsed[9],
-                    unparsed[10],
-                    unparsed[11],
-                    unparsed[12],
-                    unparsed[13],
-                    unparsed[14],
-                    unparsed[15],
-                ];
-                unparsed = &unparsed[16..];
-                Some(IpAddr::from(Ipv6Addr::from(*octets)))
-            }
-
-            _ => None,
-        }?;
-
-        // it is safe because we ensure there are at least 2 unparsed bytes
+        // it is safe because we ensure there are at least 2 unparsed bytes for port
         let port = BigEndian::read_u16(&unparsed[..2]);
         unparsed = &unparsed[2..];
 
@@ -209,7 +220,7 @@ impl NodeInfo {
         let mut node_info = NodeInfo::new(addr, port, name.to_string());
 
         // bytes required to decode 4 x f64 values
-        if unparsed.len() < 4 * 8 {
+        if unparsed.len() < 32 {
             return None;
         }
 
@@ -241,7 +252,6 @@ mod tests {
         } else {
             panic!("deserialization failed");
         }
-
     }
 
     #[test]
