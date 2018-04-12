@@ -5,6 +5,10 @@ use super::*;
 // fixme: mb use monotonic Instant?
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use super::byteorder::{BigEndian, ByteOrder};
+use agent::proto::BinarySerializable;
+
+
 /// Periodic request sent to random neighbour in order
 /// to measure its RTT.
 ///
@@ -16,15 +20,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// |    8     |  64 |  32  |   1 - 255   | NodeInfo | NodeInfo | NodeInfo | NodeInfo |
 /// +----------+------------+-------------+----------+----------+----------+----------+
 ///
-pub struct ProbeRequest<'a> {
-    transmitter_name: &'a str,
+#[derive(Debug, PartialOrd, PartialEq)]
+pub struct ProbeRequest {
     sent_at_sec: u64,
     sent_at_nsec: u32,
+    transmitter_name: String,
     neighbours: Option<NodeList>,
 }
 
-impl <'a> ProbeRequest<'a> {
-    pub fn new(name: &'a str) -> Self {
+impl ProbeRequest {
+    pub fn new(name: String) -> Self {
         ProbeRequest {
             transmitter_name: name,
             sent_at_sec: 0,
@@ -34,7 +39,8 @@ impl <'a> ProbeRequest<'a> {
     }
 
     /// Timestamp must be set immediately before
-    /// message serialization and transmission
+    /// message serialization and transmission.
+    /// Use
     pub fn set_current_time(&mut self) {
         if let Ok(t) = SystemTime::now().duration_since(UNIX_EPOCH) {
             self.sent_at_sec = t.as_secs();
@@ -45,13 +51,71 @@ impl <'a> ProbeRequest<'a> {
     pub fn set_neighbours(&mut self, neighbours: NodeList) {
         self.neighbours = Some(neighbours);
     }
+
+    fn set_time(&mut self, secs: u64, nsecs: u32) {
+        self.sent_at_sec = secs;
+        self.sent_at_nsec = nsecs;
+    }
 }
 
-fn s() {
-    let t = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    let secs = t.as_secs(); // could work almost forever :)
-    let nsec = t.subsec_nanos();
+
+impl <'a> BinarySerializable<'a> for ProbeRequest {
+    type Item = Self;
+
+    fn serialize(&self) -> Option<Vec<u8>> {
+        let mut msg_buff: Vec<u8> = Vec::new();
+        let mut buff_4b: [u8; 4] = [0; 4];
+        let mut buff_8b: [u8; 8] = [0; 8];
+
+        // msg type
+        msg_buff.push(types::MsgType::ProbeRequest.to_code());
+
+        // sent_at
+        BigEndian::write_u64(&mut buff_8b, self.sent_at_sec);
+        msg_buff.extend(buff_8b.iter());
+        BigEndian::write_u32(&mut buff_4b, self.sent_at_nsec);
+        msg_buff.extend(buff_4b.iter());
+
+        // probe initiator's name
+        msg_buff.extend(serialize_str(&self.transmitter_name)?);
+
+        // neighbours
+        if let Some(ref neighbours) = self.neighbours {
+            neighbours.iter().for_each(|n| msg_buff.extend(n.serialize()));
+        }
+
+        Some(msg_buff)
+    }
+
+    fn deserialize(data: &'a [u8]) -> Option<Self> {
+        let mut unparsed = &data[..];
+
+        // time
+        let secs = BigEndian::read_u64(&unparsed[..8]);
+        let nsecs = BigEndian::read_u32(&unparsed[8..12]);
+        unparsed = &unparsed[12..];
+
+        // transmitter name
+        let (transmitter_name, mut unparsed) = deserialize_str(unparsed)?;
+
+        // create message
+        let mut msg = ProbeRequest::new(transmitter_name.to_string());
+        msg.set_time(secs, nsecs);
+
+        while let Some((info, rest)) = NodeInfo::deserialize(unparsed) {
+            if let Some(ref mut neighbours) = msg.neighbours {
+                neighbours.push(info);
+            } else {
+                msg.neighbours = Some(vec![info]);
+            }
+
+            unparsed = rest;
+        }
+
+        Some(msg)
+    }
 }
+
 
 /// Network RTT-probe response.
 ///
@@ -63,8 +127,160 @@ fn s() {
 /// |    8     |  64 |  32  |     1 - 255     |         256        |                   var                     |
 /// +----------+------------+-----------------+--------------------+-------------------------------------------+
 ///
-/// Remote node's response includes information about up to 4 neighbour nodes
+/// Remote node's response includes as well information about up to 4 its neighbour nodes
 ///
+#[derive(Debug, PartialOrd, PartialEq)]
 pub struct ProbeResponse {
+    sent_at_sec: u64,
+    sent_at_nsec: u32,
+    receiver_name: String,
+    location: NodeCoordinates,
+    neighbours: Option<NodeList>,
+}
 
+impl ProbeResponse {
+    pub fn new(name: String, location: NodeCoordinates) -> Self {
+//        let neighbours = if neighbours.len() > 0 {
+//            Some(neighbours)
+//        } else {
+//            None
+//        };
+
+        ProbeResponse {
+            receiver_name: name,
+            sent_at_sec: 0,
+            sent_at_nsec: 0,
+            location, neighbours: None,
+        }
+    }
+
+    fn copy_time(&mut self, request: &ProbeRequest) {
+        self.sent_at_sec = request.sent_at_sec;
+        self.sent_at_nsec = request.sent_at_nsec;
+    }
+
+    fn set_time(&mut self, secs: u64, nsecs: u32) {
+        self.sent_at_sec = secs;
+        self.sent_at_nsec = nsecs;
+    }
+}
+
+impl <'de> BinarySerializable<'de> for ProbeResponse {
+    type Item = ProbeResponse;
+
+    fn serialize(&self) -> Option<Vec<u8>> {
+        let mut msg_buff: Vec<u8> = Vec::new();
+        let mut buff_4b: [u8; 4] = [0; 4];
+        let mut buff_8b: [u8; 8] = [0; 8];
+
+        // msg type
+        msg_buff.push(types::MsgType::ProbeResponse.to_code());
+
+        // sent_at
+        BigEndian::write_u64(&mut buff_8b, self.sent_at_sec);
+        msg_buff.extend(buff_8b.iter());
+        BigEndian::write_u32(&mut buff_4b, self.sent_at_nsec);
+        msg_buff.extend(buff_4b.iter());
+
+        // probe respondent's name
+        msg_buff.extend(serialize_str(&self.receiver_name)?);
+
+        // coordinates
+        [
+            self.location.x1,
+            self.location.x2,
+            self.location.height,
+            self.location.pos_err,
+        ].iter()
+            .for_each(|e| {
+                BigEndian::write_f64(&mut buff_8b, *e);
+                msg_buff.extend(buff_8b.iter())
+            });
+
+        // neighbours
+        if let Some(ref neighbours) = self.neighbours {
+            neighbours.iter().for_each(|n| msg_buff.extend(n.serialize()));
+        }
+
+        Some(msg_buff)
+    }
+
+    fn deserialize(data: &'de [u8]) -> Option<Self> {
+        let mut unparsed = &data[..];
+
+        // time
+        let secs = BigEndian::read_u64(&unparsed[..8]);
+        let nsecs = BigEndian::read_u32(&unparsed[8..12]);
+        unparsed = &unparsed[12..];
+
+        // transmitter name
+        let (respondent_name, mut unparsed) = deserialize_str(unparsed)?;
+
+        // bytes required to decode coordinates
+        if unparsed.len() < 32 {
+            return None;
+        }
+
+        // parse coordinates
+        let respondent_location = NodeCoordinates {
+            x1: BigEndian::read_f64(&unparsed[..8]),
+            x2: BigEndian::read_f64(&unparsed[8..16]),
+            height: BigEndian::read_f64(&unparsed[16..24]),
+            pos_err: BigEndian::read_f64(&unparsed[24..32]),
+        };
+
+        unparsed = &unparsed[32..];
+
+        // create message
+        let mut msg = ProbeResponse::new(respondent_name.to_string(), respondent_location);
+        msg.set_time(secs, nsecs);
+
+        while let Some((info, rest)) = NodeInfo::deserialize(unparsed) {
+            if let Some(ref mut neighbours) = msg.neighbours {
+                neighbours.push(info);
+            } else {
+                msg.neighbours = Some(vec![info]);
+            }
+
+            unparsed = rest;
+        }
+
+        Some(msg)
+
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn codec_homomorphism_probe_request() {
+        let mut req = ProbeRequest::new("test_node".to_string());
+        req.set_current_time();
+
+        let encoded = req.serialize().unwrap();
+        let decoded = ProbeRequest::deserialize(&encoded[1..]).unwrap();
+
+        assert_eq!(req, decoded);
+    }
+
+    #[test]
+    fn codec_homomorphism_probe_response() {
+        let mut req = ProbeRequest::new("test_node".to_string());
+        req.set_current_time();
+
+        let location = NodeCoordinates {
+            x1: 1.5, x2: 23.65, height: 0.34, pos_err: 0.5,
+        };
+
+        let mut resp = ProbeResponse::new("respondent_node".to_string(), location);
+        resp.copy_time(&req);
+
+        let encoded = resp.serialize().unwrap();
+        let decoded = ProbeResponse::deserialize(&encoded[1..]).unwrap();
+
+        assert_eq!(resp, decoded);
+    }
 }

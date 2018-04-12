@@ -14,21 +14,21 @@ use super::*;
 ///
 /// Send it to bootstrap server in order to obtain some neighbour's addresses
 #[derive(Debug, PartialOrd, PartialEq)]
-pub struct BootstrapRequest<'a> {
-    local_name: &'a str,
+pub struct BootstrapRequest {
+    local_name: String,
 }
 
-impl<'a> BootstrapRequest<'a> {
-    pub fn new(local_name: &'a str) -> Self {
+impl BootstrapRequest {
+    pub fn new(local_name: String) -> Self {
         BootstrapRequest { local_name }
     }
 }
 
-impl<'a> BinarySerializable<'a> for BootstrapRequest<'a> {
+impl <'a> BinarySerializable<'a> for BootstrapRequest {
     type Item = Self;
 
     fn serialize(&self) -> Option<Vec<u8>> {
-        let mut name_serialized = serialize_str(self.local_name)?;
+        let mut name_serialized = serialize_str(&self.local_name)?;
 
         // insert msg code to create request payload
         name_serialized.insert(0, types::MsgType::BootstrapReq.to_code());
@@ -38,7 +38,7 @@ impl<'a> BinarySerializable<'a> for BootstrapRequest<'a> {
 
     fn deserialize(data: &'a [u8]) -> Option<Self> {
         let (name, _) = deserialize_str(data)?;
-        Some(BootstrapRequest { local_name: name })
+        Some(BootstrapRequest { local_name: name.to_string() })
     }
 }
 
@@ -101,16 +101,16 @@ mod tests {
 
     #[test]
     fn serialize_bootstrap_request() {
-        let req = BootstrapRequest::new("test");
+        let req = BootstrapRequest::new("test".to_string());
         assert_eq!(req.serialize(), Some(vec![1, 4, 116, 101, 115, 116]));
 
-        let empty = BootstrapRequest::new("");
+        let empty = BootstrapRequest::new("".to_string());
         assert_eq!(empty.serialize(), Some(vec![1, 0]));
     }
 
     #[test]
     fn codec_homomorphism_bootstrap_request() {
-        let req = BootstrapRequest::new("test_node");
+        let req = BootstrapRequest::new("test_node".to_string());
 
         let encoded = req.serialize().unwrap();
         let decoded = BootstrapRequest::deserialize(&encoded[1..]).unwrap();

@@ -8,6 +8,8 @@ use super::*;
 pub enum MsgType {
     BootstrapReq,
     BootstrapResp,
+    ProbeRequest,
+    ProbeResponse,
 }
 
 impl MsgType {
@@ -15,6 +17,8 @@ impl MsgType {
         match *self {
             MsgType::BootstrapReq => 1,
             MsgType::BootstrapResp => 2,
+            MsgType::ProbeRequest => 10,
+            MsgType::ProbeResponse => 11,
         }
     }
 
@@ -22,6 +26,8 @@ impl MsgType {
         match code {
             1 => Some(MsgType::BootstrapReq),
             2 => Some(MsgType::BootstrapResp),
+            10 => Some(MsgType::ProbeRequest),
+            11 => Some(MsgType::ProbeResponse),
 
             _ => None,
         }
