@@ -8,7 +8,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use super::byteorder::{BigEndian, ByteOrder};
 use agent::proto::BinarySerializable;
 
-
 /// Periodic request sent to random neighbour in order
 /// to measure its RTT.
 ///
@@ -58,8 +57,7 @@ impl ProbeRequest {
     }
 }
 
-
-impl <'a> BinarySerializable<'a> for ProbeRequest {
+impl<'a> BinarySerializable<'a> for ProbeRequest {
     type Item = Self;
 
     fn serialize(&self) -> Option<Vec<u8>> {
@@ -81,7 +79,9 @@ impl <'a> BinarySerializable<'a> for ProbeRequest {
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
-            neighbours.iter().for_each(|n| msg_buff.extend(n.serialize()));
+            neighbours
+                .iter()
+                .for_each(|n| msg_buff.extend(n.serialize()));
         }
 
         Some(msg_buff)
@@ -116,7 +116,6 @@ impl <'a> BinarySerializable<'a> for ProbeRequest {
     }
 }
 
-
 /// Network RTT-probe response.
 ///
 /// +----------+------------+-----------------+--------------------+-------------------------------------------+
@@ -140,17 +139,12 @@ pub struct ProbeResponse {
 
 impl ProbeResponse {
     pub fn new(name: String, location: NodeCoordinates) -> Self {
-//        let neighbours = if neighbours.len() > 0 {
-//            Some(neighbours)
-//        } else {
-//            None
-//        };
-
         ProbeResponse {
             receiver_name: name,
             sent_at_sec: 0,
             sent_at_nsec: 0,
-            location, neighbours: None,
+            location,
+            neighbours: None,
         }
     }
 
@@ -165,7 +159,7 @@ impl ProbeResponse {
     }
 }
 
-impl <'de> BinarySerializable<'de> for ProbeResponse {
+impl<'de> BinarySerializable<'de> for ProbeResponse {
     type Item = ProbeResponse;
 
     fn serialize(&self) -> Option<Vec<u8>> {
@@ -199,7 +193,9 @@ impl <'de> BinarySerializable<'de> for ProbeResponse {
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
-            neighbours.iter().for_each(|n| msg_buff.extend(n.serialize()));
+            neighbours
+                .iter()
+                .for_each(|n| msg_buff.extend(n.serialize()));
         }
 
         Some(msg_buff)
@@ -246,10 +242,8 @@ impl <'de> BinarySerializable<'de> for ProbeResponse {
         }
 
         Some(msg)
-
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -272,7 +266,10 @@ mod tests {
         req.set_current_time();
 
         let location = NodeCoordinates {
-            x1: 1.5, x2: 23.65, height: 0.34, pos_err: 0.5,
+            x1: 1.5,
+            x2: 23.65,
+            height: 0.34,
+            pos_err: 0.5,
         };
 
         let mut resp = ProbeResponse::new("respondent_node".to_string(), location);

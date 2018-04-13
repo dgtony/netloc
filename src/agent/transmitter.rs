@@ -10,7 +10,7 @@ use std::net::UdpSocket;
 
 use storage::SharedStorage;
 
-const GOSSIP_MAX_NEIGHBOURS_IN_MSG: u8 = 4;
+const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
 
 pub struct Transmitter {
     store: SharedStorage,
@@ -33,7 +33,7 @@ impl Transmitter {
     pub fn run(&self) -> io::Result<()> {
         // fixme mb change to custom error?
         loop {
-            let s = self.store.lock().unwrap();
+            let mut s = self.store.lock().unwrap();
 
             if let Some(neighbours) = s.get_random_neighbours(GOSSIP_MAX_NEIGHBOURS_IN_MSG) {
 

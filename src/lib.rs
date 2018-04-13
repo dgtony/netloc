@@ -1,3 +1,5 @@
+extern crate rand;
+
 mod agent;
 mod interface;
 mod storage;

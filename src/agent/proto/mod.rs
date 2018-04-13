@@ -4,8 +4,8 @@
 extern crate byteorder;
 
 mod types;
-mod bootstrap;
-mod probe;
+pub mod bootstrap;
+pub mod probe;
 
 pub use self::types::*;
 

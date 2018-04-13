@@ -24,7 +24,7 @@ impl BootstrapRequest {
     }
 }
 
-impl <'a> BinarySerializable<'a> for BootstrapRequest {
+impl<'a> BinarySerializable<'a> for BootstrapRequest {
     type Item = Self;
 
     fn serialize(&self) -> Option<Vec<u8>> {
@@ -38,7 +38,9 @@ impl <'a> BinarySerializable<'a> for BootstrapRequest {
 
     fn deserialize(data: &'a [u8]) -> Option<Self> {
         let (name, _) = deserialize_str(data)?;
-        Some(BootstrapRequest { local_name: name.to_string() })
+        Some(BootstrapRequest {
+            local_name: name.to_string(),
+        })
     }
 }
 
