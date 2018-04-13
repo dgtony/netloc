@@ -38,7 +38,7 @@ impl MsgType {
 
 pub type NodeList = Vec<NodeInfo>;
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub struct NodeFlags {
     is_addr_ipv6: bool,
 }
@@ -59,7 +59,7 @@ impl NodeFlags {
     }
 }
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub struct NodeCoordinates {
     pub x1: f64,
     pub x2: f64,
@@ -67,7 +67,18 @@ pub struct NodeCoordinates {
     pub pos_err: f64,
 }
 
-#[derive(Debug, PartialOrd, PartialEq)]
+impl NodeCoordinates {
+    pub fn empty() -> Self {
+        NodeCoordinates {
+            x1: 0.0,
+            x2: 0.0,
+            height: 0.0,
+            pos_err: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub struct NodeInfo {
     pub flags: NodeFlags,
     pub ip: IpAddr,
@@ -92,12 +103,7 @@ impl NodeInfo {
             ip,
             port,
             name,
-            location: NodeCoordinates {
-                x1: 0.0,
-                x2: 0.0,
-                height: 0.0,
-                pos_err: 0.0,
-            },
+            location: NodeCoordinates::empty(),
         }
     }
 

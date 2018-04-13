@@ -32,19 +32,33 @@ impl PartialEq for Node {
 impl Eq for Node {}
 
 pub struct Storage {
+    location: NodeCoordinates,
     nodes: HashSet<Node>,
     rng: ThreadRng,
-    // todo
 }
 
 impl Storage {
     /// Create empty storage
     pub fn new() -> Self {
-        // todo
         Storage {
+            location: NodeCoordinates::empty(),
             nodes: HashSet::new(),
             rng: thread_rng(),
         }
+    }
+
+    /// Add new or replace existing node's information
+    pub fn add_node(&mut self, info: NodeInfo) {
+        let record = Node {
+            info,
+            // set update ts to current
+            last_updated_sec: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|t| t.as_secs())
+                .unwrap_or(0),
+        };
+
+        self.nodes.replace(record);
     }
 
     /// Return 'max_nodes' randomly chosen from all currently known to local node.
@@ -71,17 +85,18 @@ impl Storage {
         Some(rand_neighbours)
     }
 
-    /// ?
-    pub fn add_node(&mut self, info: NodeInfo) {
-        let record = Node {
-            info,
-            // set update time to current
-            last_updated_sec: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|t| t.as_secs())
-                .unwrap_or(0),
-        };
+    /// Return local node's full view.
+    pub fn get_all_nodes(&self) -> NodeList {
+        self.nodes.iter().map(|n| n.info.clone()).collect()
+    }
 
-        self.nodes.replace(record);
+    /// Return position of local node in RTT-based coordinate space
+    pub fn get_location(&self) -> NodeCoordinates {
+        self.location.clone()
+    }
+
+    /// Update location parameters of local node
+    pub fn set_location(&mut self, location: NodeCoordinates) {
+        self.location = location;
     }
 }
