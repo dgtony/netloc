@@ -3,6 +3,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{seq, thread_rng, ThreadRng};
 
@@ -10,28 +11,28 @@ use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
 
-pub struct Neighbour {
+pub struct Node {
     info: NodeInfo,
-    last_seen_sec: u64,
+    last_updated_sec: u64,
 }
 
-impl Hash for Neighbour {
+impl Hash for Node {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.info.ip.hash(state);
         self.info.port.hash(state);
     }
 }
 
-impl PartialEq for Neighbour {
-    fn eq(&self, other: &Neighbour) -> bool {
+impl PartialEq for Node {
+    fn eq(&self, other: &Node) -> bool {
         self.info.ip == other.info.ip && self.info.port == other.info.port
     }
 }
 
-impl Eq for Neighbour {}
+impl Eq for Node {}
 
 pub struct Storage {
-    neighbours: HashSet<Neighbour>,
+    nodes: HashSet<Node>,
     rng: ThreadRng,
     // todo
 }
@@ -41,7 +42,7 @@ impl Storage {
     pub fn new() -> Self {
         // todo
         Storage {
-            neighbours: HashSet::new(),
+            nodes: HashSet::new(),
             rng: thread_rng(),
         }
     }
@@ -51,22 +52,36 @@ impl Storage {
     /// records will be returned.
     /// Return None if storage is empty.
     pub fn get_random_nodes(&mut self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
-        if self.neighbours.is_empty() {
+        if self.nodes.is_empty() {
             return None;
         }
 
-        let num_values_to_return: usize = if max_nodes < self.neighbours.len() {
+        let num_values_to_return: usize = if max_nodes < self.nodes.len() {
             max_nodes
         } else {
-            self.neighbours.len()
+            self.nodes.len()
         };
 
-        let nptr: Vec<&Neighbour> = self.neighbours.iter().collect();
+        let nptr: Vec<&Node> = self.nodes.iter().collect();
         let rand_neighbours = seq::sample_slice_ref(&mut self.rng, &nptr, num_values_to_return)
             .iter()
             .map(|&&v| &v.info)
             .collect();
 
         Some(rand_neighbours)
+    }
+
+    /// ?
+    pub fn add_node(&mut self, info: NodeInfo) {
+        let record = Node {
+            info,
+            // set update time to current
+            last_updated_sec: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|t| t.as_secs())
+                .unwrap_or(0),
+        };
+
+        self.nodes.replace(record);
     }
 }
