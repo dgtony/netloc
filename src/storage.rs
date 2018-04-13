@@ -1,22 +1,37 @@
 /// Store and share all network coordinates info.
 
 use std::sync::{Arc, Mutex};
-
-use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 
 use rand::{seq, thread_rng, ThreadRng};
 
-pub type SharedStorage = Arc<Mutex<Storage>>;
+use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
 
+pub type SharedStorage = Arc<Mutex<Storage>>;
 
 pub struct Neighbour {
     info: NodeInfo,
     last_seen_sec: u64,
 }
 
+impl Hash for Neighbour {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.info.ip.hash(state);
+        self.info.port.hash(state);
+    }
+}
+
+impl PartialEq for Neighbour {
+    fn eq(&self, other: &Neighbour) -> bool {
+        self.info.ip == other.info.ip && self.info.port == other.info.port
+    }
+}
+
+impl Eq for Neighbour {}
 
 pub struct Storage {
-    neighbours: Vec<Neighbour>,
+    neighbours: HashSet<Neighbour>,
     rng: ThreadRng,
     // todo
 }
@@ -26,7 +41,7 @@ impl Storage {
     pub fn new() -> Self {
         // todo
         Storage {
-            neighbours: Vec::new(),
+            neighbours: HashSet::new(),
             rng: thread_rng(),
         }
     }
@@ -35,22 +50,21 @@ impl Storage {
     /// If number of nodes in the storage is N | N < max_nodes, than N informational
     /// records will be returned.
     /// Return None if storage is empty.
-    pub fn get_random_neighbours(&mut self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
-        let num_neighbours = self.neighbours.len();
-
-        if num_neighbours < 1 {
+    pub fn get_random_nodes(&mut self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
+        if self.neighbours.is_empty() {
             return None;
         }
 
-        let num_values: usize = if max_nodes < num_neighbours {
+        let num_values_to_return: usize = if max_nodes < self.neighbours.len() {
             max_nodes
         } else {
-            num_neighbours
+            self.neighbours.len()
         };
 
-        let rand_neighbours = seq::sample_slice_ref(&mut self.rng, &self.neighbours, num_values)
+        let nptr: Vec<&Neighbour> = self.neighbours.iter().collect();
+        let rand_neighbours = seq::sample_slice_ref(&mut self.rng, &nptr, num_values_to_return)
             .iter()
-            .map(|&v| &v.info)
+            .map(|&&v| &v.info)
             .collect();
 
         Some(rand_neighbours)

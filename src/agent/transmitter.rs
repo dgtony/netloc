@@ -35,7 +35,7 @@ impl Transmitter {
         loop {
             let mut s = self.store.lock().unwrap();
 
-            if let Some(neighbours) = s.get_random_neighbours(GOSSIP_MAX_NEIGHBOURS_IN_MSG) {
+            if let Some(neighbours) = s.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG) {
 
                 // todo create message
 

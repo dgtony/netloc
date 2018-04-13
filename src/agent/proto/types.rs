@@ -69,11 +69,11 @@ pub struct NodeCoordinates {
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct NodeInfo {
-    flags: NodeFlags,
-    ip: IpAddr,
-    port: u16,
-    name: String,
-    location: NodeCoordinates,
+    pub flags: NodeFlags,
+    pub ip: IpAddr,
+    pub port: u16,
+    pub name: String,
+    pub location: NodeCoordinates,
 }
 
 impl NodeInfo {
