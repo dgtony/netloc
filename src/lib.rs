@@ -1,8 +1,8 @@
 extern crate rand;
 
-mod agent;
-mod interface;
-mod storage;
+pub mod agent;
+pub mod interface;
+pub mod storage;
 
 #[cfg(test)]
 mod tests {
