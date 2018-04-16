@@ -30,7 +30,7 @@ pub struct ProbeRequest {
 impl ProbeRequest {
     pub fn new(name: String) -> Self {
         ProbeRequest {
-            transmitter_name: name,
+            transmitter_name: name, // fixme use &'a str
             sent_at_sec: 0,
             sent_at_nsec: 0,
             neighbours: None,

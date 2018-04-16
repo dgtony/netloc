@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::{seq, thread_rng, ThreadRng};
+use rand::{seq, Isaac64Rng};
 
 use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
 
@@ -34,7 +34,7 @@ impl Eq for Node {}
 pub struct Storage {
     location: NodeCoordinates,
     nodes: HashSet<Node>,
-    rng: ThreadRng,
+    rng: Isaac64Rng,
 }
 
 impl Storage {
@@ -43,7 +43,7 @@ impl Storage {
         Storage {
             location: NodeCoordinates::empty(),
             nodes: HashSet::new(),
-            rng: thread_rng(),
+            rng: Isaac64Rng::new_unseeded(),
         }
     }
 

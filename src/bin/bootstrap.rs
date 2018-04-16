@@ -14,7 +14,7 @@ fn main() {
     println!("bootstrap server not implemented!")
 
     // todo:
-    // - use hardcoded address of landmark-agent with zero coordinates
+    // - use predefined (CLI args?) address of landmark-agent with zero coordinates
     // - add it into the storage
     // - run UDP-server
 }

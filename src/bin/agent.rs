@@ -10,8 +10,10 @@ use netloc::agent;
 
 
 fn main() {
-    println!("Agent not implemented!");
+    // todo parse CLI args
 
-    // todo
-
+    // todo use config to send parameters in agent
+    if let Err(e) = agent::run_agent() {
+        println!("ERROR | agent failure: {}", e);
+    }
 }

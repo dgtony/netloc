@@ -6,23 +6,35 @@
 use std::io;
 use std::time::Duration;
 use std::thread;
-use std::net::UdpSocket;
+use std::net::{SocketAddr, UdpSocket};
 
+use agent::{BinarySerializable, NodeList};
+use agent::bootstrap::BootstrapRequest;
+use agent::probe::ProbeRequest;
 use storage::SharedStorage;
 
 const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
 
 pub struct Transmitter {
+    name: String,
+    bootstrap: SocketAddr,
     store: SharedStorage,
     transmission_interval: Duration,
     sock: UdpSocket,
-    // todo
 }
 
 impl Transmitter {
     /// Create new transmitter object
-    pub fn new(store: SharedStorage, sock: UdpSocket, transmission_interval: Duration) -> Self {
+    pub fn new(
+        name: String,
+        bootstrap: SocketAddr,
+        store: SharedStorage,
+        sock: UdpSocket,
+        transmission_interval: Duration,
+    ) -> Self {
         Transmitter {
+            name,
+            bootstrap,
             store,
             transmission_interval,
             sock,
@@ -33,18 +45,32 @@ impl Transmitter {
     pub fn run(&self) -> io::Result<()> {
         // fixme mb change to custom error?
         loop {
-            let mut s = self.store.lock().unwrap();
+            let mut store = self.store.lock().unwrap();
 
-            if let Some(neighbours) = s.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG) {
+            if let Some(nodes) = store.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG + 1) {
+                let receiver = nodes[0];
 
-                // todo create message
+                // create request
+                let mut request = ProbeRequest::new(self.name.clone());
+                let neighbours: NodeList = nodes.iter().skip(1).map(|&n| (*n).clone()).collect();
+                request.set_neighbours(neighbours);
 
-                // todo: send request with neighbour list
+                // set sending time immediately before serialization
+                request.set_current_time();
+                if let Some(encoded) = request.serialize() {
+                    // send request with neighbour list
 
+                    // todo remove
+                    println!("DEBUG | gonna send probe request to {:?}", receiver);
+
+                    self.sock
+                        .send_to(&encoded, SocketAddr::new(receiver.ip, receiver.port))?;
+                }
             } else {
-
-                // todo empty table - bootstrap
-
+                let request = BootstrapRequest::new(self.name.clone());
+                if let Some(encoded) = request.serialize() {
+                    self.sock.send_to(&encoded, self.bootstrap)?;
+                }
             }
 
             // wait

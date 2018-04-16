@@ -14,7 +14,7 @@ use std::str::from_utf8;
 use storage;
 
 // fixme do we really need a trait?
-trait BinarySerializable<'de> {
+pub trait BinarySerializable<'de> {
     type Item;
 
     // fixme mb change to Result<Vec<u8>, ? SomeErr ? >
