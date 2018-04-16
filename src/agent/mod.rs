@@ -23,7 +23,6 @@ use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::Duration;
 
 pub fn run_agent() -> io::Result<()> {
-
     // todo read from config
     let node_name = String::from("test_node");
     let agent_ip_addr = "0.0.0.0";

@@ -66,7 +66,7 @@ impl Storage {
     /// records will be returned.
     /// Return None if storage is empty.
     pub fn get_random_nodes(&mut self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
-        if self.nodes.is_empty() {
+        if self.nodes.is_empty() || max_nodes < 1 {
             return None;
         }
 
@@ -99,4 +99,21 @@ impl Storage {
     pub fn set_location(&mut self, location: NodeCoordinates) {
         self.location = location;
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_storage() {
+        let mut s = Storage::new();
+
+        assert_eq!(s.get_random_nodes(0), None);
+        assert_eq!(s.get_random_nodes(1), None);
+        assert_eq!(s.get_all_nodes().len(), 0);
+    }
+
+    // todo more tests
+
 }

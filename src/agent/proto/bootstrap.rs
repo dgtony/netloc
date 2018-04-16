@@ -15,7 +15,7 @@ use super::*;
 /// Send it to bootstrap server in order to obtain some neighbour's addresses
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct BootstrapRequest {
-    local_name: String,
+    pub local_name: String,
 }
 
 impl BootstrapRequest {
@@ -57,7 +57,7 @@ impl<'a> BinarySerializable<'a> for BootstrapRequest {
 ///
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct BootstrapResponse {
-    neighbours: NodeList,
+    pub neighbours: NodeList,
 }
 
 impl BootstrapResponse {
