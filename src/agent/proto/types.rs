@@ -113,7 +113,7 @@ impl NodeInfo {
     }
 
     /// Set coordinates on existing node record
-    pub fn set_coordinates(&mut self, coordinates: NodeCoordinates) {
+    pub fn set_coordinates(&mut self, coordinates: NodeCoordinates) { // fixme remove?
         self.location = coordinates;
     }
 }
@@ -287,6 +287,4 @@ mod tests {
             panic!("deserialization failed");
         }
     }
-
-    // todo more
 }

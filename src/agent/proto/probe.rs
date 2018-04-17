@@ -21,10 +21,10 @@ use agent::proto::BinarySerializable;
 ///
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct ProbeRequest {
-    sent_at_sec: u64,
-    sent_at_nsec: u32,
-    transmitter_name: String,
-    neighbours: Option<NodeList>,
+    pub sent_at_sec: u64,
+    pub sent_at_nsec: u32,
+    pub transmitter_name: String,
+    pub neighbours: Option<NodeList>,
 }
 
 impl ProbeRequest {
@@ -49,11 +49,6 @@ impl ProbeRequest {
 
     pub fn set_neighbours(&mut self, neighbours: NodeList) {
         self.neighbours = Some(neighbours);
-    }
-
-    fn set_time(&mut self, secs: u64, nsecs: u32) {
-        self.sent_at_sec = secs;
-        self.sent_at_nsec = nsecs;
     }
 }
 
@@ -100,7 +95,8 @@ impl<'a> BinarySerializable<'a> for ProbeRequest {
 
         // create message
         let mut msg = ProbeRequest::new(transmitter_name.to_string());
-        msg.set_time(secs, nsecs);
+        msg.sent_at_sec = secs;
+        msg.sent_at_nsec = nsecs;
 
         while let Some((info, rest)) = NodeInfo::deserialize(unparsed) {
             if let Some(ref mut neighbours) = msg.neighbours {
@@ -130,11 +126,11 @@ impl<'a> BinarySerializable<'a> for ProbeRequest {
 ///
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct ProbeResponse {
-    sent_at_sec: u64,
-    sent_at_nsec: u32,
-    receiver_name: String,
-    location: NodeCoordinates,
-    neighbours: Option<NodeList>,
+    pub sent_at_sec: u64,
+    pub sent_at_nsec: u32,
+    pub receiver_name: String,
+    pub location: NodeCoordinates,
+    pub neighbours: Option<NodeList>,
 }
 
 impl ProbeResponse {
@@ -148,14 +144,13 @@ impl ProbeResponse {
         }
     }
 
-    fn copy_time(&mut self, request: &ProbeRequest) {
-        self.sent_at_sec = request.sent_at_sec;
-        self.sent_at_nsec = request.sent_at_nsec;
+    pub fn set_neighbours(&mut self, neighbours: NodeList) {
+        self.neighbours = Some(neighbours);
     }
 
-    fn set_time(&mut self, secs: u64, nsecs: u32) {
-        self.sent_at_sec = secs;
-        self.sent_at_nsec = nsecs;
+    pub fn copy_time(&mut self, request: &ProbeRequest) {
+        self.sent_at_sec = request.sent_at_sec;
+        self.sent_at_nsec = request.sent_at_nsec;
     }
 }
 
@@ -229,7 +224,9 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
 
         // create message
         let mut msg = ProbeResponse::new(respondent_name.to_string(), respondent_location);
-        msg.set_time(secs, nsecs);
+        // set time
+        msg.sent_at_sec = secs;
+        msg.sent_at_nsec = nsecs;
 
         while let Some((info, rest)) = NodeInfo::deserialize(unparsed) {
             if let Some(ref mut neighbours) = msg.neighbours {

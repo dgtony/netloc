@@ -8,12 +8,10 @@ use std::time::Duration;
 use std::thread;
 use std::net::{SocketAddr, UdpSocket};
 
-use agent::{BinarySerializable, NodeList};
+use agent::{BinarySerializable, NodeList, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
 use agent::bootstrap::BootstrapRequest;
 use agent::probe::ProbeRequest;
 use storage::SharedStorage;
-
-const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
 
 pub struct Transmitter {
     name: String,
