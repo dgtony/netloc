@@ -11,6 +11,7 @@ use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
 
+#[derive(Debug)]
 pub struct Node {
     info: NodeInfo,
     last_updated_sec: u64,
@@ -85,6 +86,28 @@ impl Storage {
         Some(rand_neighbours)
     }
 
+    /// Return 'max_nodes' most recently updated nodes, sorted by last update time.
+    pub fn get_most_recent(&self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
+        if self.nodes.is_empty() || max_nodes < 1 {
+            return None;
+        }
+
+        let num_values_to_return: usize = if max_nodes < self.nodes.len() {
+            max_nodes
+        } else {
+            self.nodes.len()
+        };
+
+        let mut nptr: Vec<&Node> = self.nodes.iter().collect();
+        nptr.sort_by(|&a, &b| b.last_updated_sec.cmp(&a.last_updated_sec));
+        Some(
+            nptr.iter()
+                .map(|&n| &n.info)
+                .take(num_values_to_return)
+                .collect(),
+        )
+    }
+
     /// Return local node's full view.
     pub fn get_all_nodes(&self) -> NodeList {
         self.nodes.iter().map(|n| n.info.clone()).collect()
@@ -104,6 +127,10 @@ impl Storage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::IpAddr;
+    use std::str::FromStr;
+    use std::thread;
+    use std::time;
 
     #[test]
     fn empty_storage() {
@@ -114,6 +141,86 @@ mod tests {
         assert_eq!(s.get_all_nodes().len(), 0);
     }
 
-    // todo more tests
+    #[test]
+    fn single_entry() {
+        let mut s = Storage::new();
+        let node_ipv4 = NodeInfo::new(
+            IpAddr::from_str("1.2.3.4").unwrap(),
+            11001,
+            "test_node_v4".to_string(),
+        );
 
+        s.add_node(node_ipv4.clone());
+
+        let res: Vec<NodeInfo> = s.get_random_nodes(2)
+            .unwrap()
+            .iter()
+            .map(|&n| n.clone())
+            .collect();
+
+        assert_eq!(res, vec![node_ipv4]);
+        assert_eq!(s.get_all_nodes().len(), 1);
+    }
+
+    #[test]
+    fn more_than_one_entry() {
+        let mut s = Storage::new();
+        let node_ipv4 = NodeInfo::new(
+            IpAddr::from_str("1.2.3.4").unwrap(),
+            11001,
+            "test_node_v4".to_string(),
+        );
+        let node_ipv6 = NodeInfo::new(
+            IpAddr::from_str("1a:2b:3c:4d:5e:6f:70:80").unwrap(),
+            11002,
+            "test_node_v6".to_string(),
+        );
+
+        s.add_node(node_ipv4.clone());
+        s.add_node(node_ipv6.clone());
+
+        assert_eq!(s.get_random_nodes(1).unwrap().len(), 1);
+        assert_eq!(s.get_random_nodes(2).unwrap().len(), 2);
+        assert_eq!(s.get_random_nodes(3).unwrap().len(), 2);
+        assert_eq!(s.get_all_nodes().len(), 2);
+    }
+
+    #[test]
+    fn recently_updated() {
+        let mut s = Storage::new();
+        assert_eq!(s.get_most_recent(0), None);
+
+        let node_1 = NodeInfo::new(
+            IpAddr::from_str("1.2.3.4").unwrap(),
+            11001,
+            "test_node_v4".to_string(),
+        );
+        let node_2 = NodeInfo::new(
+            IpAddr::from_str("1a:2b:3c:4d:5e:6f:70:80").unwrap(),
+            11002,
+            "test_node_v6".to_string(),
+        );
+
+        s.add_node(node_1.clone());
+        thread::sleep_ms(1000); // time resolution is 1 sec
+        s.add_node(node_2.clone());
+
+        println!("DEBUG | nodes: {:?}", s.nodes);
+        assert_eq!(s.get_most_recent(1).unwrap()[0], &node_2);
+        assert_eq!(s.get_most_recent(2).unwrap(), vec![&node_2, &node_1]);
+    }
+
+    #[test]
+    fn node_location() {
+        let mut s = Storage::new();
+        let coord = NodeCoordinates {
+            x1: 12.45,
+            x2: 76.001,
+            height: 10.23,
+            pos_err: 0.05,
+        };
+
+        s.set_location(coord.clone());
+        assert_eq!(s.get_location(), coord);
+    }
 }

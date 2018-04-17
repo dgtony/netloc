@@ -92,8 +92,8 @@ impl NodeInfo {
     pub fn new(ip: IpAddr, port: u16, name: String) -> Self {
         // set initial flags
         let is_addr_ipv6 = match ip {
-            Ipv4Addr => false,
-            Ipv6Addr => true,
+            IpAddr::V4(..) => false,
+            IpAddr::V6(..) => true,
         };
 
         let flags = NodeFlags { is_addr_ipv6 };
