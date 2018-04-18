@@ -3,11 +3,11 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::{seq, Isaac64Rng};
 
-use agent::{NodeCoordinates, NodeFlags, NodeInfo, NodeList};
+use agent::{vivaldi, NodeCoordinates, NodeFlags, NodeInfo, NodeList};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
 
@@ -122,6 +122,13 @@ impl Storage {
     pub fn set_location(&mut self, location: NodeCoordinates) {
         self.location = location;
     }
+
+    pub fn update_location(&mut self, received_location: &NodeCoordinates, rtt: Duration) {
+        // todo use vivaldi module
+
+        //vivaldi::compute_location()
+
+    }
 }
 
 #[cfg(test)]
@@ -185,7 +192,8 @@ mod tests {
         assert_eq!(s.get_all_nodes().len(), 2);
     }
 
-    #[test] #[ignore]
+    #[test]
+    #[ignore]
     fn recently_updated() {
         let mut s = Storage::new();
         assert_eq!(s.get_most_recent(0), None);

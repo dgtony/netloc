@@ -8,6 +8,7 @@
 mod receiver;
 mod transmitter;
 mod proto;
+pub mod vivaldi;
 
 pub use self::proto::*;
 

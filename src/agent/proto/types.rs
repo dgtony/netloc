@@ -113,8 +113,14 @@ impl NodeInfo {
     }
 
     /// Set coordinates on existing node record
-    pub fn set_coordinates(&mut self, coordinates: NodeCoordinates) { // fixme remove?
-        self.location = coordinates;
+    pub fn set_coordinates(&mut self, coordinates: &NodeCoordinates) {
+        // fixme remove?
+        self.location = NodeCoordinates {
+            x1: coordinates.x1,
+            x2: coordinates.x2,
+            height: coordinates.height,
+            pos_err: coordinates.pos_err,
+        }
     }
 }
 
@@ -239,7 +245,7 @@ impl NodeInfo {
         }
 
         // parse coordinates and error
-        node_info.set_coordinates(NodeCoordinates {
+        node_info.set_coordinates(&NodeCoordinates {
             x1: BigEndian::read_f64(&unparsed[..8]),
             x2: BigEndian::read_f64(&unparsed[8..16]),
             height: BigEndian::read_f64(&unparsed[16..24]),
@@ -272,7 +278,7 @@ mod tests {
     fn node_info_serialization_filled_coordinates() {
         let addr = IpAddr::from(Ipv4Addr::new(1, 2, 3, 4));
         let mut info = NodeInfo::new(addr, 1028, "test".to_string());
-        info.set_coordinates(NodeCoordinates {
+        info.set_coordinates(&NodeCoordinates {
             x1: 1.0,
             x2: 2.0,
             height: 3.0,

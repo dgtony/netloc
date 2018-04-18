@@ -6,11 +6,11 @@
 /// - Location response (for the local request).
 
 use std::io;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 
 use storage::SharedStorage;
-use agent::{BinarySerializable, MsgType, NodeInfo, NodeCoordinates, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
+use agent::{BinarySerializable, MsgType, NodeCoordinates, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
 use agent::bootstrap::BootstrapResponse;
 use agent::probe::{ProbeRequest, ProbeResponse};
 
@@ -77,29 +77,26 @@ impl Receiver {
                 }
 
                 Some(MsgType::ProbeResponse) => {
-                    // process probe response
-
-                    // time of detection
+                    // message reception time
                     let received_at = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
-                        .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
+                        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
                     // decode and process
                     ProbeResponse::deserialize(msg_data).and_then(|response| {
-
-                        // todo calculate new location
-
                         let mut s = self.store.lock().unwrap();
 
+                        // recompute own location based on response's RTT
+                        if let Some(rtt) = received_at
+                            .checked_sub(Duration::new(response.sent_at_sec, response.sent_at_nsec))
+                        {
+                            s.update_location(&response.location, rtt);
+                        }
+
                         // store information about respondent
-                        let mut respondent = NodeInfo::new(sender.ip(), sender.port(), self.name.clone());
-                        // meh...
-                        respondent.set_coordinates(NodeCoordinates {
-                            x1: response.location.x1,
-                            x2: response.location.x2,
-                            height: response.location.height,
-                            pos_err: response.location.pos_err,
-                        });
+                        let mut respondent =
+                            NodeInfo::new(sender.ip(), sender.port(), self.name.clone());
+                        respondent.set_coordinates(&response.location);
                         s.add_node(respondent);
 
                         // store info about its neighbours
