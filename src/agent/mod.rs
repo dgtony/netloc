@@ -1,9 +1,16 @@
-/// Location agent
-///
-/// Perform all communication between nodes:
-/// - RTT probes
-/// - computation of coordinates
-/// - overlay network discovery (Gossip)
+//! Location agent
+//!
+//! Regular agents perform all communication between nodes:
+//! - RTT probes
+//! - computation of coordinates
+//! - overlay network discovery (Gossip)
+//!
+//! Landmark agent always sustain zero coordinates,
+//! only responding to foreign requests, collecting
+//! and spreading information about new nodes.
+//!
+//! NB: there must be ONLY ONE landmark agent in the network!!!
+//!
 
 mod receiver;
 mod transmitter;
@@ -25,7 +32,12 @@ use std::time::Duration;
 
 pub const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
 
-pub fn run_agent() -> io::Result<()> {
+pub enum AgentType {
+    Regular,
+    Landmark,
+}
+
+pub fn run_regular_agent() -> io::Result<()> {
     // todo read from config
     let node_name = String::from("test_node");
     let agent_ip_addr = "0.0.0.0";
@@ -43,8 +55,8 @@ pub fn run_agent() -> io::Result<()> {
     let sock = UdpSocket::bind(format!("{}:{}", agent_ip_addr, agent_port))?;
     let store = Arc::new(Mutex::new(Storage::new()));
 
-    // - run transmitter in separate thread
-    {
+    // run transmitter in separate thread
+    let _tx_thread = {
         let node_name = node_name.clone();
         let store = store.clone();
         let sock = sock.try_clone().expect("cannot clone socket");
@@ -60,17 +72,17 @@ pub fn run_agent() -> io::Result<()> {
             if let Err(e) = t.run() {
                 println!("ERROR | agent-transmitter failure: {}", e);
             }
-        });
-    }
+        })
+    };
 
-    // - run receiver in separate thread
-    let rcv_thread = {
+    // run receiver in separate thread
+    let rx_thread = {
         let node_name = node_name.clone();
         let store = store.clone();
         let sock = sock.try_clone().expect("cannot clone socket");
 
         thread::spawn(move || {
-            let r = Receiver::new(node_name, store, sock);
+            let r = Receiver::new(AgentType::Regular, node_name, store, sock);
             if let Err(e) = r.run() {
                 println!("ERROR | agent-receiver failure: {}", e);
             }
@@ -80,7 +92,36 @@ pub fn run_agent() -> io::Result<()> {
     // - run interface server
 
     // todo remove
-    rcv_thread.join();
+    rx_thread.join();
+
+    Ok(())
+}
+
+pub fn run_landmark_agent() -> io::Result<()> {
+    // todo read from config
+    let node_name = String::from("landmark");
+    let agent_ip_addr = "0.0.0.0";
+    let agent_port: u16 = 3737;
+
+    let store = Arc::new(Mutex::new(Storage::new()));
+
+    // run receiver in separate thread
+    let rx_thread = {
+        let store = store.clone();
+        let sock = UdpSocket::bind(format!("{}:{}", agent_ip_addr, agent_port))?;
+
+        thread::spawn(move || {
+            let r = Receiver::new(AgentType::Landmark, node_name, store, sock);
+            if let Err(e) = r.run() {
+                println!("ERROR | landmark-agent failure: {}", e);
+            }
+        })
+    };
+
+    // - run interface server ?
+
+    // todo remove
+    rx_thread.join();
 
     Ok(())
 }

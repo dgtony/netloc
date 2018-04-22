@@ -10,5 +10,13 @@ extern crate netloc;
 use netloc::agent;
 
 fn main() {
-    println!("Landmark agent not implemented!")
+
+    // todo parse CLI args
+
+    println!("INFO | starting landmark agent");
+
+    // todo use config to send parameters in agent
+    if let Err(e) = agent::run_landmark_agent() {
+        println!("ERROR | agent failure: {}", e);
+    }
 }
