@@ -5,22 +5,21 @@
 //! for drifting network coordinates.
 //!
 
+extern crate clap;
 extern crate netloc;
 
 use std::net::IpAddr;
 use std::str::FromStr;
+use std::process;
 use std::time::Duration;
 
+use clap::{App, Arg};
 use netloc::agent;
 
-// fixme: parse for real and use errors (failure crate?)
-fn parse_args() -> Option<agent::AgentConfig> {
-    let agent_ip_addr = IpAddr::from_str("127.0.0.1").ok()?;
-    let agent_port: u16 = 3738;
-
+fn parse_args(agent_addr: IpAddr, agent_port: u16) -> agent::AgentConfig {
     let config = agent::AgentConfig {
-        agent_addr: agent_ip_addr,
-        agent_port: agent_port,
+        agent_addr,
+        agent_port,
         agent_name: String::new(),
         probe_period: None,
         interface_addr: None,
@@ -29,22 +28,49 @@ fn parse_args() -> Option<agent::AgentConfig> {
         bootstrap_port: None,
     };
 
-    Some(config)
+    config
 }
 
 fn main() {
-    // todo parse CLI args
+    let args = clap::App::new("netloc-landmark")
+        .version("0.1")
+        .author("Anton Dort-Golts dortgolts@gmail.com")
+        .about("Landmark agent for the Vivaldi network coordinate system")
+        .arg(
+            clap::Arg::with_name("addr")
+                .short("a")
+                .long("addr")
+                .help("IP-address to listen on")
+                .takes_value(true)
+                .default_value("0.0.0.0"),
+        )
+        .arg(
+            clap::Arg::with_name("port")
+                .short("p")
+                .long("port")
+                .help("UDP-port to listen on")
+                .takes_value(true)
+                .default_value("3738"),
+        )
+        .get_matches();
 
-    match parse_args() {
-        Some(config) => {
-            println!("INFO | starting landmark agent");
+    let agent_addr = args.value_of("addr").and_then(|a| IpAddr::from_str(a).ok());
+    let agent_port = args.value_of("port").unwrap().parse::<u16>();
 
-            // todo use config to send parameters in agent
-            if let Err(e) = agent::run_landmark_agent(&config) {
-                println!("ERROR | agent failure: {}", e);
-            }
-        }
+    // validation
+    if agent_addr.is_none() {
+        println!("ERROR | bad IP address: {}", args.value_of("addr").unwrap());
+        process::exit(1);
+    }
+    if let Err(_) = agent_port {
+        println!("ERROR | bad port value: {}", args.value_of("port").unwrap());
+        process::exit(1);
+    }
 
-        None => println!("ERROR | cannot parse config options"),
+    let config = parse_args(agent_addr.unwrap(), agent_port.unwrap());
+    println!("INFO | starting landmark agent");
+
+    if let Err(e) = agent::run_landmark_agent(&config) {
+        println!("ERROR | agent failure: {}", e);
     }
 }

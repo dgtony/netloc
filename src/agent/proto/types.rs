@@ -73,7 +73,7 @@ impl NodeCoordinates {
             x1: 0.0,
             x2: 0.0,
             height: 0.0,
-            pos_err: 0.0,
+            pos_err: 1.0, // maximum error
         }
     }
 }
