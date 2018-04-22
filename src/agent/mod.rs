@@ -39,22 +39,32 @@ pub enum AgentType {
     Landmark,
 }
 
-pub fn run_regular_agent() -> io::Result<()> {
-    // todo read from config
-    let node_name = String::from("test_node");
-    let agent_ip_addr = "0.0.0.0";
-    let agent_port: u16 = 3737;
-    let bootstrap_ip_addr = "127.0.0.1";
-    let bootstrap_port: u16 = 3739;
-    let probe_interval = Duration::new(10, 0);
+pub struct AgentConfig {
+    pub agent_addr: IpAddr,
+    pub agent_port: u16,
+    pub agent_name: String,
+    pub probe_period: Option<Duration>,
+    pub interface_addr: Option<IpAddr>,
+    pub interface_port: Option<u16>,
+    pub bootstrap_addr: Option<IpAddr>,
+    pub bootstrap_port: Option<u16>,
+    //pub log_level: // todo
+}
+
+pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
+    let node_name = config.agent_name.clone();
 
     // shared parameters
     let bootstrap_addr = SocketAddr::new(
-        IpAddr::from_str(bootstrap_ip_addr)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?,
-        bootstrap_port,
+        config
+            .bootstrap_addr
+            .ok_or(io::Error::from(io::ErrorKind::InvalidInput))?,
+        config
+            .bootstrap_port
+            .ok_or(io::Error::from(io::ErrorKind::InvalidInput))?,
     );
-    let sock = UdpSocket::bind(format!("{}:{}", agent_ip_addr, agent_port))?;
+
+    let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
     let store = Arc::new(Mutex::new(Storage::new()));
 
     // run transmitter in separate thread
@@ -62,15 +72,14 @@ pub fn run_regular_agent() -> io::Result<()> {
         let node_name = node_name.clone();
         let store = store.clone();
         let sock = sock.try_clone().expect("cannot clone socket");
+        let period = config
+            .probe_period
+            .expect("probe period not specified")
+            .clone();
 
         thread::spawn(move || {
-            let t = transmitter::Transmitter::new(
-                node_name,
-                bootstrap_addr,
-                store,
-                sock,
-                probe_interval,
-            );
+            let t = transmitter::Transmitter::new(node_name, bootstrap_addr, store, sock, period);
+
             if let Err(e) = t.run() {
                 println!("ERROR | agent-transmitter failure: {}", e);
             }
@@ -99,20 +108,21 @@ pub fn run_regular_agent() -> io::Result<()> {
     Ok(())
 }
 
-pub fn run_landmark_agent() -> io::Result<()> {
-    // todo read from config
-    let agent_ip_addr = "0.0.0.0";
-    let agent_port: u16 = 3738;
-
+pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
     let store = Arc::new(Mutex::new(Storage::new()));
 
     // run receiver in separate thread
     let rx_thread = {
         let store = store.clone();
-        let sock = UdpSocket::bind(format!("{}:{}", agent_ip_addr, agent_port))?;
+        let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
 
         thread::spawn(move || {
-            let r = Receiver::new(AgentType::Landmark, LANDMARK_AGENT_NAME.to_string(), store, sock);
+            let r = Receiver::new(
+                AgentType::Landmark,
+                LANDMARK_AGENT_NAME.to_string(),
+                store,
+                sock,
+            );
             if let Err(e) = r.run() {
                 println!("ERROR | landmark-agent failure: {}", e);
             }

@@ -7,16 +7,47 @@
 
 extern crate netloc;
 
+
+use std::net::IpAddr;
+use std::str::FromStr;
+use std::time::Duration;
+
 use netloc::agent;
 
-fn main() {
 
+// fixme: parse for real and use errors (failure crate?)
+fn parse_args() -> Option<agent::AgentConfig> {
+    let agent_ip_addr = IpAddr::from_str("0.0.0.0").ok()?;
+    let agent_port: u16 = 3737;
+
+    let config = agent::AgentConfig {
+        agent_addr: agent_ip_addr,
+        agent_port: agent_port,
+        agent_name: String::new(),
+        probe_period: None,
+        interface_addr: None,
+        interface_port: None,
+        bootstrap_addr: None,
+        bootstrap_port: None,
+    };
+
+    Some(config)
+}
+
+
+fn main() {
     // todo parse CLI args
 
-    println!("INFO | starting landmark agent");
+    match parse_args() {
+        Some(config) => {
+            println!("INFO | starting landmark agent");
 
-    // todo use config to send parameters in agent
-    if let Err(e) = agent::run_landmark_agent() {
-        println!("ERROR | agent failure: {}", e);
+            // todo use config to send parameters in agent
+            if let Err(e) = agent::run_landmark_agent(&config) {
+                println!("ERROR | agent failure: {}", e);
+            }
+        }
+
+        None => println!("ERROR | cannot parse config options"),
     }
 }

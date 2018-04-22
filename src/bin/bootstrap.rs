@@ -13,7 +13,8 @@ use std::io;
 
 use netloc::storage;
 use netloc::agent::bootstrap::{BootstrapRequest, BootstrapResponse};
-use netloc::agent::{BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG, LANDMARK_AGENT_NAME};
+use netloc::agent::{BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG,
+                    LANDMARK_AGENT_NAME};
 
 const RCV_BUFF_SIZE: usize = 1500;
 
@@ -67,7 +68,11 @@ fn main() {
     // landmark node with zero coordinates
     let landmark_node_ip = IpAddr::from_str("127.0.0.1").expect("bad landmark node IP");
     let landmark_node_port = 3738;
-    let landmark_info = NodeInfo::new(landmark_node_ip, landmark_node_port, LANDMARK_AGENT_NAME.to_string());
+    let landmark_info = NodeInfo::new(
+        landmark_node_ip,
+        landmark_node_port,
+        LANDMARK_AGENT_NAME.to_string(),
+    );
 
     // init storage
     let mut store = storage::Storage::new();
