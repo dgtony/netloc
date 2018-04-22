@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex};
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::Duration;
 
-const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
+pub const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
 
 pub fn run_agent() -> io::Result<()> {
     // todo read from config

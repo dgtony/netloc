@@ -12,13 +12,10 @@ use std::str::FromStr;
 use std::io;
 
 use netloc::storage;
-use netloc::agent::bootstrap;
-use netloc::agent;
-
-use netloc::agent::BinarySerializable;
+use netloc::agent::bootstrap::{BootstrapRequest, BootstrapResponse};
+use netloc::agent::{BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
 
 const RCV_BUFF_SIZE: usize = 1500;
-const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4; // fixme move to common place
 
 fn run_server(addr: SocketAddr, store: &mut storage::Storage) -> io::Result<()> {
     let mut buff: [u8; RCV_BUFF_SIZE] = [0; RCV_BUFF_SIZE];
@@ -28,15 +25,11 @@ fn run_server(addr: SocketAddr, store: &mut storage::Storage) -> io::Result<()> 
         let (msg_len, sender) = sock.recv_from(&mut buff)?;
         let msg_data = &buff[1..msg_len];
 
-        match agent::MsgType::from_code(buff[0]) {
-            Some(agent::MsgType::BootstrapReq) => {
-                bootstrap::BootstrapRequest::deserialize(msg_data).and_then(|msg| {
+        match MsgType::from_code(buff[0]) {
+            Some(MsgType::BootstrapReq) => {
+                BootstrapRequest::deserialize(msg_data).and_then(|msg| {
                     // store requesting node
-                    store.add_node(agent::NodeInfo::new(
-                        sender.ip(),
-                        sender.port(),
-                        msg.local_name,
-                    ));
+                    store.add_node(NodeInfo::new(sender.ip(), sender.port(), msg.local_name));
 
                     // construct response
                     let response = {
@@ -45,7 +38,7 @@ fn run_server(addr: SocketAddr, store: &mut storage::Storage) -> io::Result<()> 
                             .get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG, &[sender])
                             .unwrap();
 
-                        let mut response = bootstrap::BootstrapResponse::empty();
+                        let mut response = BootstrapResponse::empty();
                         for n in nodes {
                             response.neighbours.push(n.clone());
                         }
@@ -74,8 +67,7 @@ fn main() {
     // landmark node with zero coordinates
     let landmark_node_ip = IpAddr::from_str("127.0.0.1").expect("bad landmark node IP");
     let landmark_node_port = 3737;
-    let landmark =
-        agent::NodeInfo::new(landmark_node_ip, landmark_node_port, "landmark".to_string());
+    let landmark = NodeInfo::new(landmark_node_ip, landmark_node_port, "landmark".to_string());
 
     // init storage
     let mut store = storage::Storage::new();
