@@ -85,6 +85,7 @@ pub struct NodeInfo {
     pub port: u16,
     pub name: String,
     pub location: NodeCoordinates,
+    // todo: pub location: Option<NodeCoordinates>
 }
 
 impl NodeInfo {

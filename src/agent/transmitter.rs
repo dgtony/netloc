@@ -45,7 +45,7 @@ impl Transmitter {
         loop {
             let mut store = self.store.lock().unwrap();
 
-            if let Some(nodes) = store.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG + 1) {
+            if let Some(nodes) = store.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG + 1, &[]) {
                 let receiver = nodes[0];
 
                 // create request

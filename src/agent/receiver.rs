@@ -53,8 +53,9 @@ impl Receiver {
                         let mut response = ProbeResponse::new(self.name.clone(), s.get_location());
 
                         // add some neighbour's info
-                        if let Some(neighbours) = s.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG)
-                            .and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
+                        if let Some(neighbours) =
+                            s.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG, &[sender])
+                                .and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
                         {
                             response.set_neighbours(neighbours);
                         }

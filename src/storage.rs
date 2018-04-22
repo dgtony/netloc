@@ -1,5 +1,6 @@
 /// Store and share all network coordinates info.
 
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
@@ -62,28 +63,45 @@ impl Storage {
         self.nodes.replace(record);
     }
 
-    /// Return 'max_nodes' randomly chosen from all currently known to local node.
-    /// If number of nodes in the storage is N | N < max_nodes, than N informational
-    /// records will be returned.
-    /// Return None if storage is empty.
-    pub fn get_random_nodes(&mut self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
+    /// Return 'max_nodes' randomly chosen from all currently known to local node,
+    /// omitting nodes from the ignored list.
+    /// If number of nodes found in the storage is N | N < max_nodes,
+    /// than N informational records will be returned.
+    /// Return None if result list is empty.
+    pub fn get_random_nodes(
+        &mut self,
+        max_nodes: usize,
+        ignore: &[SocketAddr],
+    ) -> Option<Vec<&NodeInfo>> {
+        // do not start on bad conditions
         if self.nodes.is_empty() || max_nodes < 1 {
             return None;
         }
 
-        let num_values_to_return: usize = if max_nodes < self.nodes.len() {
-            max_nodes
-        } else {
-            self.nodes.len()
-        };
-
-        let nptr: Vec<&Node> = self.nodes.iter().collect();
-        let rand_neighbours = seq::sample_slice_ref(&mut self.rng, &nptr, num_values_to_return)
+        // pointers to all known nodes besides ignored ones
+        let nptr: Vec<&Node> = self.nodes
             .iter()
-            .map(|&&v| &v.info)
+            .filter(|&n| !ignore.contains(&SocketAddr::new(n.info.ip, n.info.port)))
             .collect();
 
-        Some(rand_neighbours)
+        let num_values_to_return: usize = if max_nodes < nptr.len() {
+            max_nodes
+        } else {
+            nptr.len()
+        };
+
+        // select random nodes
+        let random_neighbours: Vec<&NodeInfo> =
+            seq::sample_slice_ref(&mut self.rng, &nptr, num_values_to_return)
+                .iter()
+                .map(|&&v| &v.info)
+                .collect();
+
+        if random_neighbours.len() > 0 {
+            Some(random_neighbours)
+        } else {
+            None
+        }
     }
 
     /// Return 'max_nodes' most recently updated nodes, sorted by last update time.
@@ -124,6 +142,7 @@ impl Storage {
     }
 
     pub fn update_location(&mut self, received_location: &NodeCoordinates, rtt: Duration) {
+
         // todo use vivaldi module
 
         //vivaldi::compute_location()
@@ -143,8 +162,8 @@ mod tests {
     fn empty_storage() {
         let mut s = Storage::new();
 
-        assert_eq!(s.get_random_nodes(0), None);
-        assert_eq!(s.get_random_nodes(1), None);
+        assert_eq!(s.get_random_nodes(0, &[]), None);
+        assert_eq!(s.get_random_nodes(1, &[]), None);
         assert_eq!(s.get_all_nodes().len(), 0);
     }
 
@@ -159,7 +178,7 @@ mod tests {
 
         s.add_node(node_ipv4.clone());
 
-        let res: Vec<NodeInfo> = s.get_random_nodes(2)
+        let res: Vec<NodeInfo> = s.get_random_nodes(2, &[])
             .unwrap()
             .iter()
             .map(|&n| n.clone())
@@ -167,6 +186,24 @@ mod tests {
 
         assert_eq!(res, vec![node_ipv4]);
         assert_eq!(s.get_all_nodes().len(), 1);
+    }
+
+    #[test]
+    fn ignored_address() {
+        let mut s = Storage::new();
+        let node_ipv4 = NodeInfo::new(
+            IpAddr::from_str("1.2.3.4").unwrap(),
+            11001,
+            "test_node_v4".to_string(),
+        );
+
+        s.add_node(node_ipv4.clone());
+
+        assert_eq!(s.get_random_nodes(10, &[]).unwrap().len(), 1);
+        assert_eq!(
+            s.get_random_nodes(10, &[SocketAddr::new(node_ipv4.ip, node_ipv4.port)]),
+            None
+        );
     }
 
     #[test]
@@ -186,9 +223,9 @@ mod tests {
         s.add_node(node_ipv4.clone());
         s.add_node(node_ipv6.clone());
 
-        assert_eq!(s.get_random_nodes(1).unwrap().len(), 1);
-        assert_eq!(s.get_random_nodes(2).unwrap().len(), 2);
-        assert_eq!(s.get_random_nodes(3).unwrap().len(), 2);
+        assert_eq!(s.get_random_nodes(1, &[]).unwrap().len(), 1);
+        assert_eq!(s.get_random_nodes(2, &[]).unwrap().len(), 2);
+        assert_eq!(s.get_random_nodes(3, &[]).unwrap().len(), 2);
         assert_eq!(s.get_all_nodes().len(), 2);
     }
 
