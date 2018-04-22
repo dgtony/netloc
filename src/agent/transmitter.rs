@@ -57,10 +57,6 @@ impl Transmitter {
                 request.set_current_time();
                 if let Some(encoded) = request.serialize() {
                     // send request with neighbour list
-
-                    // todo remove
-                    println!("DEBUG | gonna send probe request to {:?}", receiver);
-
                     self.sock
                         .send_to(&encoded, SocketAddr::new(receiver.ip, receiver.port))?;
                 }

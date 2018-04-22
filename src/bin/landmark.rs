@@ -7,18 +7,16 @@
 
 extern crate netloc;
 
-
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::time::Duration;
 
 use netloc::agent;
 
-
 // fixme: parse for real and use errors (failure crate?)
 fn parse_args() -> Option<agent::AgentConfig> {
-    let agent_ip_addr = IpAddr::from_str("0.0.0.0").ok()?;
-    let agent_port: u16 = 3737;
+    let agent_ip_addr = IpAddr::from_str("127.0.0.1").ok()?;
+    let agent_port: u16 = 3738;
 
     let config = agent::AgentConfig {
         agent_addr: agent_ip_addr,
@@ -33,7 +31,6 @@ fn parse_args() -> Option<agent::AgentConfig> {
 
     Some(config)
 }
-
 
 fn main() {
     // todo parse CLI args

@@ -34,7 +34,6 @@ fn parse_args() -> Option<agent::AgentConfig> {
 }
 
 fn main() {
-
     // todo parse CLI args
 
     match parse_args() {
