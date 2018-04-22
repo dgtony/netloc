@@ -32,6 +32,8 @@ use std::time::Duration;
 
 pub const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
 
+pub const LANDMARK_AGENT_NAME: &str = "landmark-agent";
+
 pub enum AgentType {
     Regular,
     Landmark,
@@ -43,7 +45,7 @@ pub fn run_regular_agent() -> io::Result<()> {
     let agent_ip_addr = "0.0.0.0";
     let agent_port: u16 = 3737;
     let bootstrap_ip_addr = "127.0.0.1";
-    let bootstrap_port: u16 = 3738;
+    let bootstrap_port: u16 = 3739;
     let probe_interval = Duration::new(10, 0);
 
     // shared parameters
@@ -99,9 +101,8 @@ pub fn run_regular_agent() -> io::Result<()> {
 
 pub fn run_landmark_agent() -> io::Result<()> {
     // todo read from config
-    let node_name = String::from("landmark");
     let agent_ip_addr = "0.0.0.0";
-    let agent_port: u16 = 3737;
+    let agent_port: u16 = 3738;
 
     let store = Arc::new(Mutex::new(Storage::new()));
 
@@ -111,7 +112,7 @@ pub fn run_landmark_agent() -> io::Result<()> {
         let sock = UdpSocket::bind(format!("{}:{}", agent_ip_addr, agent_port))?;
 
         thread::spawn(move || {
-            let r = Receiver::new(AgentType::Landmark, node_name, store, sock);
+            let r = Receiver::new(AgentType::Landmark, LANDMARK_AGENT_NAME.to_string(), store, sock);
             if let Err(e) = r.run() {
                 println!("ERROR | landmark-agent failure: {}", e);
             }
