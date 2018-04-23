@@ -10,6 +10,7 @@ use std::ops::{Add, Mul, Sub};
 
 use super::NodeCoordinates;
 
+// todo set recommended in paper!
 const NODE_ERROR_COEFF: f64 = 0.25; // C_c
 const LOCAL_ERROR_WMA_COEFF: f64 = 0.25; // C_e
 

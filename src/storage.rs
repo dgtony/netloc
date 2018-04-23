@@ -142,11 +142,14 @@ impl Storage {
     }
 
     pub fn update_location(&mut self, received_location: &NodeCoordinates, rtt: Duration) {
+        let rtt_sec = rtt.as_secs() as f64 + (rtt.subsec_nanos() as f64 / 1_000_000.0);
 
-        // todo use vivaldi module
+        // recompute location
+        let updated_location = vivaldi::compute_location(&self.location, received_location, rtt_sec);
 
-        //vivaldi::compute_location()
+        println!("DEBUG | node location updated: {:?}", updated_location);
 
+        self.location = updated_location;
     }
 }
 
