@@ -60,7 +60,7 @@ impl NodeFlags {
     }
 }
 
-#[derive(Debug, PartialOrd, PartialEq, Clone)]
+#[derive(Debug, Default, PartialOrd, PartialEq, Clone)]
 pub struct NodeCoordinates {
     pub x1: f64,
     pub x2: f64,
@@ -71,10 +71,8 @@ pub struct NodeCoordinates {
 impl NodeCoordinates {
     pub fn empty() -> Self {
         NodeCoordinates {
-            x1: 0.0,
-            x2: 0.0,
-            height: 0.0,
             pos_err: 1.0, // maximum error
+            .. Default::default()
         }
     }
 }

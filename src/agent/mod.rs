@@ -100,7 +100,9 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
 }
 
 pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
-    let store = Arc::new(Mutex::new(Storage::new()));
+    let mut store = Storage::new();
+    store.set_location(NodeCoordinates { pos_err: 0.0, .. Default::default() });
+    let store = Arc::new(Mutex::new(store));
 
     // run receiver in separate thread
     let rx_thread = {

@@ -7,9 +7,7 @@
 //!
 
 use std::ops::{Add, Mul, Sub};
-
-use rand::{Isaac64Rng, Rng};
-
+use rand::Rng;
 use super::NodeCoordinates;
 
 // todo set recommended in paper!
@@ -139,6 +137,7 @@ fn node_distance(n1: &NodeCoordinates, n2: &NodeCoordinates) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use rand::Isaac64Rng;
     use super::*;
 
     #[test]
