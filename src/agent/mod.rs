@@ -87,7 +87,7 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
         thread::spawn(move || {
             let r = Receiver::new(AgentType::Regular, node_name, store, sock);
             if let Err(e) = r.run() {
-                println!("ERROR | agent-receiver failure: {}", e);
+                panic!("agent-receiver failure: {}", e);
             }
         })
     };
@@ -113,7 +113,7 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
         thread::spawn(move || {
             let r = Receiver::new(AgentType::Landmark, agent_name, store, sock);
             if let Err(e) = r.run() {
-                println!("ERROR | landmark-agent failure: {}", e);
+                panic!("landmark-agent failure: {}", e);
             }
         })
     };

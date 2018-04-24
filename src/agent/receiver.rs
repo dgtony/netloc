@@ -125,7 +125,7 @@ impl Receiver {
                 }
 
                 _ => {
-                    println!("DEBUG | unknown message received: {:?}", msg_data);
+                    debug!("unexpected message: {:?}", msg_data);
                 }
             }
         }
@@ -173,7 +173,7 @@ impl Receiver {
                     }
                 }
 
-                _ => println!("DEBUG | unexpected message: {:?}", msg_data),
+                _ => debug!("unexpected message: {:?}", msg_data),
             }
         }
     }

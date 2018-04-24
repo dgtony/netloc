@@ -127,7 +127,7 @@ fn run_server(config: &Config, store: &mut storage::Storage) -> io::Result<()> {
                 });
             }
 
-            _ => println!("DEBUG | received unknown message: {:?}", msg_data),
+            _ => debug!("unknown message: {:?}", msg_data),
         }
     }
 }

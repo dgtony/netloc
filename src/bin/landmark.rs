@@ -107,7 +107,7 @@ fn main() {
         }
 
         None => {
-            println!("argument parsing failed");
+            println!("ERROR | argument parsing failed");
             process::exit(1);
         }
     }

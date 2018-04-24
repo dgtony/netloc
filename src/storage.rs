@@ -148,6 +148,7 @@ impl Storage {
         let updated_location =
             vivaldi::compute_location(&self.location, received_location, rtt_sec);
 
+        // todo remove
         println!("DEBUG | node location updated: {:?}", updated_location);
 
         self.location = updated_location;
@@ -254,7 +255,6 @@ mod tests {
         thread::sleep_ms(1000); // time resolution is 1 sec
         s.add_node(node_2.clone());
 
-        println!("DEBUG | nodes: {:?}", s.nodes);
         assert_eq!(s.get_most_recent(1).unwrap()[0], &node_2);
         assert_eq!(s.get_most_recent(2).unwrap(), vec![&node_2, &node_1]);
     }
