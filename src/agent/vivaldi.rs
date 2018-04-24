@@ -57,19 +57,6 @@ impl Sub for HeightVector2D {
     }
 }
 
-/// Vector x Vector
-//impl Mul for HeightVector2D {
-//    type Output = Self;
-//
-//    fn mul(self, rhs: Self) -> Self::Output {
-//        HeightVector2D {
-//            x1: self.x1 * rhs.x1,
-//            x2: self.x2 * rhs.x2,
-//            height: self.height * rhs.height, // not sure
-//        }
-//    }
-//}
-
 /// Scalar x Vector
 impl Mul<f64> for HeightVector2D {
     type Output = HeightVector2D;
@@ -132,7 +119,8 @@ pub fn compute_location(
     let timestep = NODE_ERROR_COEFF * sample_weight;
 
     let new_pos_vec = HeightVector2D::from(local_node)
-        + (HeightVector2D::from(local_node) - HeightVector2D::from(remote_node)).unit() * timestep * computed_distance;
+        + (HeightVector2D::from(local_node) - HeightVector2D::from(remote_node)).unit() * timestep
+            * computed_distance;
 
     NodeCoordinates {
         x1: new_pos_vec.x1,

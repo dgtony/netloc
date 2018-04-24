@@ -11,6 +11,7 @@
 //!
 //! NB: there must be ONLY ONE landmark agent in the network!!!
 //!
+extern crate log;
 
 mod receiver;
 mod transmitter;
@@ -39,31 +40,21 @@ pub enum AgentType {
     Landmark,
 }
 
+#[derive(Debug)]
 pub struct AgentConfig {
     pub agent_addr: IpAddr,
     pub agent_port: u16,
     pub agent_name: String,
     pub probe_period: Option<Duration>,
-    pub interface_addr: Option<IpAddr>,
-    pub interface_port: Option<u16>,
-    pub bootstrap_addr: Option<IpAddr>,
-    pub bootstrap_port: Option<u16>,
-    //pub log_level: // todo
+    pub interface_addr: Option<SocketAddr>,
+    pub bootstrap_addr: Option<SocketAddr>,
+    pub log_level: log::Level,
 }
 
 pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
     let node_name = config.agent_name.clone();
 
     // shared parameters
-    let bootstrap_addr = SocketAddr::new(
-        config
-            .bootstrap_addr
-            .ok_or(io::Error::from(io::ErrorKind::InvalidInput))?,
-        config
-            .bootstrap_port
-            .ok_or(io::Error::from(io::ErrorKind::InvalidInput))?,
-    );
-
     let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
     let store = Arc::new(Mutex::new(Storage::new()));
 
@@ -76,12 +67,13 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
             .probe_period
             .expect("probe period not specified")
             .clone();
+        let bootstrap_addr = config.bootstrap_addr.unwrap().clone();
 
         thread::spawn(move || {
             let t = transmitter::Transmitter::new(node_name, bootstrap_addr, store, sock, period);
 
             if let Err(e) = t.run() {
-                println!("ERROR | agent-transmitter failure: {}", e);
+                panic!("agent-transmitter failure: {}", e);
             }
         })
     };
@@ -116,13 +108,10 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
         let store = store.clone();
         let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
 
+        let agent_name = config.agent_name.clone();
+
         thread::spawn(move || {
-            let r = Receiver::new(
-                AgentType::Landmark,
-                LANDMARK_AGENT_NAME.to_string(),
-                store,
-                sock,
-            );
+            let r = Receiver::new(AgentType::Landmark, agent_name, store, sock);
             if let Err(e) = r.run() {
                 println!("ERROR | landmark-agent failure: {}", e);
             }
