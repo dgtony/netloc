@@ -4,17 +4,15 @@
 //! recalculate it. This agent could be used as an anchor
 //! for drifting network coordinates.
 //!
-
 extern crate clap;
 #[macro_use]
 extern crate log;
 extern crate loggerv;
 extern crate netloc;
 
-use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, ToSocketAddrs};
 use std::str::FromStr;
 use std::process;
-use std::time::Duration;
 
 use clap::{App, Arg};
 use netloc::{agent, arg_validator::*};
@@ -99,7 +97,7 @@ fn main() {
                 .unwrap();
 
             info!(
-                "landmark agent started at {:?}:{}",
+                "landmark agent started at {}:{}",
                 config.agent_addr, config.agent_port
             );
 

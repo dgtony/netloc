@@ -1,8 +1,8 @@
+extern crate clap;
 /// Locator agent service executable.
 ///
 /// Run UDP-based location agent as well
 /// as JSON-over-TCP interface server.
-extern crate clap;
 #[macro_use]
 extern crate log;
 extern crate loggerv;
@@ -137,7 +137,7 @@ fn main() {
                 .unwrap();
 
             info!(
-                "regular agent started at {:?}:{}",
+                "regular agent started at {}:{}",
                 config.agent_addr, config.agent_port
             );
 

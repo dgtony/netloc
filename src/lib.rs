@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+extern crate loggerv;
 extern crate rand;
 
 pub mod agent;
