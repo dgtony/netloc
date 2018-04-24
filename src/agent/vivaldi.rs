@@ -8,11 +8,13 @@
 
 use std::ops::{Add, Mul, Sub};
 
+use rand::{Isaac64Rng, Rng};
+
 use super::NodeCoordinates;
 
 // todo set recommended in paper!
 const NODE_ERROR_COEFF: f64 = 0.25; // C_c
-const LOCAL_ERROR_WMA_COEFF: f64 = 0.25; // C_e
+const LOCAL_ERROR_WMA_COEFF: f64 = 0.5; // C_e
 
 #[derive(Debug, Copy, Clone)]
 struct HeightVector2D {
@@ -75,21 +77,20 @@ impl HeightVector2D {
         (self.x1.powi(2) + self.x2.powi(2)).sqrt() + self.height
     }
 
-    pub fn unit(self) -> Self {
+    pub fn unit<R: Rng>(self, rng: &mut R) -> Self {
         let flat_vec_norm = HeightVector2D {
             x1: self.x1,
             x2: self.x2,
             height: 0.0,
         }.norm();
 
-        // todo: it is better to generate random direction unit vector
-        // predefined unit for zero vector
         if flat_vec_norm < 1e-9 {
+            // generate random direction vector
             return HeightVector2D {
-                x1: 1.0,
-                x2: 0.0,
+                x1: rng.next_f64(),
+                x2: rng.next_f64(),
                 height: 0.0,
-            };
+            }.unit(rng);
         }
 
         HeightVector2D {
@@ -102,10 +103,11 @@ impl HeightVector2D {
 
 /* Computation */
 
-pub fn compute_location(
+pub fn compute_location<R: Rng>(
     local_node: &NodeCoordinates,
     remote_node: &NodeCoordinates,
     rtt_sec: f64,
+    rng: &mut R,
 ) -> NodeCoordinates {
     let sample_weight = local_node.pos_err / (local_node.pos_err + remote_node.pos_err);
 
@@ -119,8 +121,8 @@ pub fn compute_location(
     let timestep = NODE_ERROR_COEFF * sample_weight;
 
     let new_pos_vec = HeightVector2D::from(local_node)
-        + (HeightVector2D::from(local_node) - HeightVector2D::from(remote_node)).unit() * timestep
-            * computed_distance;
+        + (HeightVector2D::from(local_node) - HeightVector2D::from(remote_node)).unit(rng)
+            * timestep * computed_distance;
 
     NodeCoordinates {
         x1: new_pos_vec.x1,
@@ -152,13 +154,14 @@ mod tests {
 
     #[test]
     fn height_vector_unit() {
+        let mut rng = Isaac64Rng::new_unseeded();
         let vec = HeightVector2D {
             x1: 3.0,
             x2: 4.0,
             height: 0.5,
         };
 
-        let unit = vec.unit();
+        let unit = vec.unit(&mut rng);
 
         assert_eq!(unit.norm(), 1.0);
         assert_eq!(unit.height, 0.0);
@@ -166,13 +169,15 @@ mod tests {
 
     #[test]
     fn height_vector_unit_zero() {
+        let mut rng = Isaac64Rng::new_unseeded();
         let zero_vec = HeightVector2D {
             x1: 0.0,
             x2: 0.0,
             height: 0.0,
         };
 
-        let unit = zero_vec.unit();
+        let unit = zero_vec.unit(&mut rng);
+
         assert_eq!(zero_vec.norm(), 0.0);
         assert_eq!(unit.norm(), 1.0);
     }

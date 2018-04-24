@@ -146,7 +146,7 @@ impl Storage {
 
         // recompute location
         let updated_location =
-            vivaldi::compute_location(&self.location, received_location, rtt_sec);
+            vivaldi::compute_location(&self.location, received_location, rtt_sec, &mut self.rng);
 
         // todo remove
         println!("DEBUG | node location updated: {:?}", updated_location);
