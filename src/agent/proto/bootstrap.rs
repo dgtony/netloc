@@ -1,7 +1,5 @@
 /// Bootstrap messages
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
 use super::*;
 
 /// First message while storage is empty
@@ -99,6 +97,7 @@ impl<'de> BinarySerializable<'de> for BootstrapResponse {
 
 #[cfg(test)]
 mod tests {
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use super::*;
 
     #[test]

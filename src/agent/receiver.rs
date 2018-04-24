@@ -7,11 +7,10 @@
 
 use std::io;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::net::{IpAddr, SocketAddr, UdpSocket};
+use std::net::UdpSocket;
 
 use storage::SharedStorage;
-use agent::{AgentType, BinarySerializable, MsgType, NodeCoordinates, NodeInfo,
-            GOSSIP_MAX_NEIGHBOURS_IN_MSG};
+use agent::{AgentType, BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
 use agent::bootstrap::BootstrapResponse;
 use agent::probe::{ProbeRequest, ProbeResponse};
 

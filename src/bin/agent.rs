@@ -9,7 +9,7 @@ extern crate loggerv;
 extern crate netloc;
 
 use std::process;
-use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, ToSocketAddrs};
 use std::str::FromStr;
 use std::time::Duration;
 

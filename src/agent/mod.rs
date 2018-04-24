@@ -26,7 +26,6 @@ use self::receiver::Receiver;
 
 use std::io;
 use std::thread;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::Duration;
@@ -70,7 +69,7 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
         let bootstrap_addr = config.bootstrap_addr.unwrap().clone();
 
         thread::spawn(move || {
-            let t = transmitter::Transmitter::new(node_name, bootstrap_addr, store, sock, period);
+            let t = Transmitter::new(node_name, bootstrap_addr, store, sock, period);
 
             if let Err(e) = t.run() {
                 panic!("agent-transmitter failure: {}", e);

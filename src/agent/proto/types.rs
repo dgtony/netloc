@@ -44,6 +44,7 @@ pub struct NodeFlags {
 }
 
 impl NodeFlags {
+    #[allow(dead_code)]
     fn serialize(&self) -> u8 {
         let is_addr_ipv6_flag: u8 = if self.is_addr_ipv6 { 1 } else { 0 };
 

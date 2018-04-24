@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::{seq, Isaac64Rng};
 
-use agent::{vivaldi, NodeCoordinates, NodeFlags, NodeInfo, NodeList};
+use agent::{vivaldi, NodeCoordinates, NodeInfo, NodeList};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
 

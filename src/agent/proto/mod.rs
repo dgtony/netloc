@@ -6,14 +6,10 @@ extern crate byteorder;
 mod types;
 pub mod bootstrap;
 pub mod probe;
-
 pub use self::types::*;
 
 use std::str::from_utf8;
 
-use storage;
-
-// fixme do we really need a trait?
 pub trait BinarySerializable<'de> {
     type Item;
 
