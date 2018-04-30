@@ -67,7 +67,12 @@ impl Receiver {
                 Some(MsgType::ProbeRequest) => {
                     // respond to foreign request
                     let response = ProbeRequest::deserialize(msg_data).and_then(|request| {
-                        debug!("detected probe from {}:{} (aka {})", sender.ip(), sender.port(), &request.sender_name);
+                        debug!(
+                            "detected probe from {}:{} (aka {})",
+                            sender.ip(),
+                            sender.port(),
+                            &request.sender_name
+                        );
 
                         // storage
                         let mut s = self.store.lock().unwrap();
@@ -79,13 +84,17 @@ impl Receiver {
                         response.copy_time(&request);
 
                         // add some neighbour's info
-                        if let Some(neighbours) = s.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG, &[sender, self.local_addr]).and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
+                        if let Some(neighbours) = s.get_random_nodes(
+                            GOSSIP_MAX_NEIGHBOURS_IN_MSG,
+                            &[sender, self.local_addr],
+                        ).and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
                         {
                             response.set_neighbours(neighbours);
                         }
 
                         // store information about sender
-                        let sender_info = NodeInfo::new(sender.ip(), sender.port(), request.sender_name);
+                        let sender_info =
+                            NodeInfo::new(sender.ip(), sender.port(), request.sender_name);
                         s.add_node(sender_info);
 
                         // save received information about nodes
@@ -112,7 +121,12 @@ impl Receiver {
 
                     // decode and process
                     ProbeResponse::deserialize(msg_data).and_then(|response| {
-                        debug!("probe response from {}:{} (aka {})", sender.ip(), sender.port(), &response.respondent_name);
+                        debug!(
+                            "probe response from {}:{} (aka {})",
+                            sender.ip(),
+                            sender.port(),
+                            &response.respondent_name
+                        );
 
                         // storage access
                         let mut s = self.store.lock().unwrap();
@@ -125,7 +139,8 @@ impl Receiver {
                         }
 
                         // store information about respondent
-                        let mut respondent_info = NodeInfo::new(sender.ip(), sender.port(), response.respondent_name);
+                        let mut respondent_info =
+                            NodeInfo::new(sender.ip(), sender.port(), response.respondent_name);
                         respondent_info.set_coordinates(&response.location);
                         s.add_node(respondent_info);
 
@@ -157,7 +172,12 @@ impl Receiver {
                 Some(MsgType::ProbeRequest) => {
                     // respond to foreign request
                     let response = ProbeRequest::deserialize(msg_data).and_then(|request| {
-                        debug!("detected probe from {}:{} (aka {})", sender.ip(), sender.port(), &request.sender_name);
+                        debug!(
+                            "detected probe from {}:{} (aka {})",
+                            sender.ip(),
+                            sender.port(),
+                            &request.sender_name
+                        );
 
                         // storage access
                         let mut s = self.store.lock().unwrap();
@@ -169,7 +189,8 @@ impl Receiver {
                         response.copy_time(&request);
 
                         // store information about sender
-                        let sender_info = NodeInfo::new(sender.ip(), sender.port(), request.sender_name);
+                        let sender_info =
+                            NodeInfo::new(sender.ip(), sender.port(), request.sender_name);
                         s.add_node(sender_info);
 
                         // save received information about nodes

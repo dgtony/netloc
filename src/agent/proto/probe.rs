@@ -119,7 +119,7 @@ impl<'a> BinarySerializable<'a> for ProbeRequest {
 /// +----------+-----+------+-----------------+--------------------+----------+----------+----------+----------+
 /// |    u8    | sec | nsec |       str       |   NodeCoordinates  | NodeInfo | NodeInfo | NodeInfo | NodeInfo |
 /// +----------+-----+------+-----------------+--------------------+----------+----------+----------+----------+
-/// |    8     |  64 |  32  |     1 - 255     |         256        |                   var                     |
+/// |    8     |  64 |  32  |     1 - 255     |         192        |                   var                     |
 /// +----------+------------+-----------------+--------------------+-------------------------------------------+
 ///
 /// Remote node's response includes as well information about up to 4 its neighbour nodes
@@ -182,12 +182,12 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
             self.location.pos_err,
         ].iter()
             .for_each(|e| {
-                BigEndian::write_f64(&mut buff_8b, *e);
-                msg_buff.extend(buff_8b.iter())
+                BigEndian::write_f32(&mut buff_4b, *e);
+                msg_buff.extend(buff_4b.iter())
             });
         // iteration
-        BigEndian::write_u32(&mut buff_4b, self.location.iteration);
-        msg_buff.extend(buff_4b.iter());
+        BigEndian::write_u64(&mut buff_8b, self.location.iteration);
+        msg_buff.extend(buff_8b.iter());
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
@@ -211,20 +211,20 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
         let (respondent_name, mut unparsed) = deserialize_str(unparsed)?;
 
         // bytes required to decode coordinates
-        if unparsed.len() < 36 {
+        if unparsed.len() < 24 {
             return None;
         }
 
         // parse coordinates
         let respondent_location = NodeCoordinates {
-            x1: BigEndian::read_f64(&unparsed[..8]),
-            x2: BigEndian::read_f64(&unparsed[8..16]),
-            height: BigEndian::read_f64(&unparsed[16..24]),
-            pos_err: BigEndian::read_f64(&unparsed[24..32]),
-            iteration: BigEndian::read_u32(&unparsed[32..36]),
+            x1: BigEndian::read_f32(&unparsed[..4]),
+            x2: BigEndian::read_f32(&unparsed[4..8]),
+            height: BigEndian::read_f32(&unparsed[8..12]),
+            pos_err: BigEndian::read_f32(&unparsed[12..16]),
+            iteration: BigEndian::read_u64(&unparsed[16..24]),
         };
 
-        unparsed = &unparsed[36..];
+        unparsed = &unparsed[24..];
 
         // create message
         let mut msg = ProbeResponse::new(respondent_name.to_string(), respondent_location);

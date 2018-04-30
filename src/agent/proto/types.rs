@@ -62,11 +62,11 @@ impl NodeFlags {
 
 #[derive(Debug, Default, PartialOrd, PartialEq, Clone)]
 pub struct NodeCoordinates {
-    pub x1: f64,
-    pub x2: f64,
-    pub height: f64,
-    pub pos_err: f64,
-    pub iteration: u32,
+    pub x1: f32,
+    pub x2: f32,
+    pub height: f32,
+    pub pos_err: f32,
+    pub iteration: u64,
 }
 
 impl NodeCoordinates {
@@ -115,7 +115,6 @@ impl NodeInfo {
 
     /// Set coordinates on existing node record
     pub fn set_coordinates(&mut self, coordinates: &NodeCoordinates) {
-        // fixme remove?
         self.location = NodeCoordinates {
             x1: coordinates.x1,
             x2: coordinates.x2,
@@ -135,7 +134,7 @@ impl NodeInfo {
 /// +---------------------------+-----------+------------------------+------+-----+-------+----+----+----+----+----+
 /// | 1 | 1 | 1 | 1 | 1 | 1 | 1 |     1     |                        |      |  1  |  var  |  f |  f |  f |  f |  u |
 /// +---------------------------------------+                        |      +-----+-------+----+----+----+----+----+
-/// |                  8                    | 32 (IPv4) / 128 (IPv6) |  16  |     var     | 64 | 64 | 64 | 64 | 32 |
+/// |                  8                    | 32 (IPv4) / 128 (IPv6) |  16  |     var     | 32 | 32 | 32 | 32 | 64 |
 /// +---------------------------------------+------------------------+------+-------------+----+----+----+----+----+
 ///
 /// Byte order is big-endian.
@@ -187,13 +186,13 @@ impl NodeInfo {
             self.location.pos_err,
         ].iter()
             .for_each(|e| {
-                BigEndian::write_f64(&mut buff_8b, *e);
-                msg_buff.extend(buff_8b.iter())
+                BigEndian::write_f32(&mut buff_4b, *e);
+                msg_buff.extend(buff_4b.iter())
             });
 
         // position iteration
-        BigEndian::write_u32(&mut buff_4b, self.location.iteration);
-        msg_buff.extend(buff_4b.iter());
+        BigEndian::write_u64(&mut buff_8b, self.location.iteration);
+        msg_buff.extend(buff_8b.iter());
 
         msg_buff
     }
@@ -246,21 +245,21 @@ impl NodeInfo {
         let (name, unparsed) = deserialize_str(unparsed)?;
         let mut node_info = NodeInfo::new(addr, port, name.to_string());
 
-        // bytes required to decode 4 x f64 + 1 x u32 values
-        if unparsed.len() < 36 {
+        // bytes required to decode 4 x f32 + 1 x u64 values
+        if unparsed.len() < 24 {
             return None;
         }
 
         // parse coordinates and error
         node_info.set_coordinates(&NodeCoordinates {
-            x1: BigEndian::read_f64(&unparsed[..8]),
-            x2: BigEndian::read_f64(&unparsed[8..16]),
-            height: BigEndian::read_f64(&unparsed[16..24]),
-            pos_err: BigEndian::read_f64(&unparsed[24..32]),
-            iteration: BigEndian::read_u32(&unparsed[32..36]),
+            x1: BigEndian::read_f32(&unparsed[..4]),
+            x2: BigEndian::read_f32(&unparsed[4..8]),
+            height: BigEndian::read_f32(&unparsed[8..12]),
+            pos_err: BigEndian::read_f32(&unparsed[12..16]),
+            iteration: BigEndian::read_u64(&unparsed[16..24]),
         });
 
-        Some((node_info, &unparsed[36..]))
+        Some((node_info, &unparsed[24..]))
     }
 }
 

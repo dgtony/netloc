@@ -102,7 +102,12 @@ fn run_server(config: &Config, store: &mut storage::Storage) -> io::Result<()> {
         match MsgType::from_code(buff[0]) {
             Some(MsgType::BootstrapReq) => {
                 BootstrapRequest::deserialize(msg_data).and_then(|msg| {
-                    debug!("detected probe from {}:{} (aka {})", sender.ip(), sender.port(), &msg.sender_name);
+                    debug!(
+                        "detected probe from {}:{} (aka {})",
+                        sender.ip(),
+                        sender.port(),
+                        &msg.sender_name
+                    );
 
                     // store requesting node
                     store.add_node(NodeInfo::new(sender.ip(), sender.port(), msg.sender_name));

@@ -11,17 +11,16 @@ use rand::Rng;
 use super::NodeCoordinates;
 
 // paper recommended
-const NODE_ERROR_COEFF: f64 = 0.25; // C_c
-const LOCAL_ERROR_WMA_COEFF: f64 = 0.5; // C_e
-
+const NODE_ERROR_COEFF: f32 = 0.25; // C_c
+const LOCAL_ERROR_WMA_COEFF: f32 = 0.5; // C_e
 
 /* Height-vector arithmetic */
 
 #[derive(Debug, Copy, Clone)]
 struct HeightVector2D {
-    x1: f64,
-    x2: f64,
-    height: f64,
+    x1: f32,
+    x2: f32,
+    height: f32,
 }
 
 impl<'a> From<&'a NodeCoordinates> for HeightVector2D {
@@ -61,10 +60,10 @@ impl Sub for HeightVector2D {
 }
 
 /// Scalar x Vector
-impl Mul<f64> for HeightVector2D {
+impl Mul<f32> for HeightVector2D {
     type Output = HeightVector2D;
 
-    fn mul(self, rhs: f64) -> Self::Output {
+    fn mul(self, rhs: f32) -> Self::Output {
         HeightVector2D {
             x1: self.x1 * rhs,
             x2: self.x2 * rhs,
@@ -74,7 +73,7 @@ impl Mul<f64> for HeightVector2D {
 }
 
 impl HeightVector2D {
-    pub fn norm(self) -> f64 {
+    pub fn norm(self) -> f32 {
         (self.x1.powi(2) + self.x2.powi(2)).sqrt() + self.height
     }
 
@@ -88,8 +87,8 @@ impl HeightVector2D {
         if flat_vec_norm < 1e-9 {
             // generate random direction vector
             return HeightVector2D {
-                x1: rng.next_f64(),
-                x2: rng.next_f64(),
+                x1: rng.next_f32(),
+                x2: rng.next_f32(),
                 height: 0.0,
             }.unit(rng);
         }
@@ -107,7 +106,7 @@ impl HeightVector2D {
 pub fn compute_location<R: Rng>(
     local: &NodeCoordinates,
     remote: &NodeCoordinates,
-    rtt_sec: f64,
+    rtt_sec: f32,
     rng: &mut R,
 ) -> NodeCoordinates {
     // w
@@ -128,8 +127,8 @@ pub fn compute_location<R: Rng>(
 
     // updated x_i
     let new_pos_vec = HeightVector2D::from(local)
-        + (HeightVector2D::from(local) - HeightVector2D::from(remote)).unit(rng)
-            * timestep * (rtt_sec - computed_distance);
+        + (HeightVector2D::from(local) - HeightVector2D::from(remote)).unit(rng) * timestep
+            * (rtt_sec - computed_distance);
 
     NodeCoordinates {
         x1: new_pos_vec.x1,
@@ -141,7 +140,7 @@ pub fn compute_location<R: Rng>(
 }
 
 /// Distance between two nodes in height-vector augmented Euclidean space
-fn node_distance(n1: &NodeCoordinates, n2: &NodeCoordinates) -> f64 {
+fn node_distance(n1: &NodeCoordinates, n2: &NodeCoordinates) -> f32 {
     (HeightVector2D::from(n1) - HeightVector2D::from(n2)).norm()
 }
 

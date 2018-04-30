@@ -157,7 +157,7 @@ impl Storage {
     }
 
     pub fn update_location(&mut self, received_location: &NodeCoordinates, rtt: Duration) {
-        let rtt_sec = rtt.as_secs() as f64 + (rtt.subsec_nanos() as f64 / 1_000_000_000.0);
+        let rtt_sec = (rtt.as_secs() as f64 + (rtt.subsec_nanos() as f64 / 1_000_000_000.0)) as f32;
 
         // recompute location
         let updated_location =
