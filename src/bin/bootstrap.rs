@@ -19,8 +19,8 @@ use clap::{App, Arg};
 
 use netloc::{storage, arg_validator::*};
 use netloc::agent::bootstrap::{BootstrapRequest, BootstrapResponse};
-use netloc::agent::{BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG,
-                    LANDMARK_AGENT_NAME};
+use netloc::agent::{BinarySerializable, MsgType, NodeCoordinates, NodeInfo,
+                    GOSSIP_MAX_NEIGHBOURS_IN_MSG, LANDMARK_AGENT_NAME};
 
 const RCV_BUFF_SIZE: usize = 1500;
 
@@ -102,8 +102,10 @@ fn run_server(config: &Config, store: &mut storage::Storage) -> io::Result<()> {
         match MsgType::from_code(buff[0]) {
             Some(MsgType::BootstrapReq) => {
                 BootstrapRequest::deserialize(msg_data).and_then(|msg| {
+                    debug!("detected probe from {}:{} (aka {})", sender.ip(), sender.port(), &msg.sender_name);
+
                     // store requesting node
-                    store.add_node(NodeInfo::new(sender.ip(), sender.port(), msg.local_name));
+                    store.add_node(NodeInfo::new(sender.ip(), sender.port(), msg.sender_name));
 
                     // construct response
                     let response = {
@@ -135,12 +137,6 @@ fn run_server(config: &Config, store: &mut storage::Storage) -> io::Result<()> {
 fn main() {
     match parse_args() {
         Some(config) => {
-            let landmark_info = NodeInfo::new(
-                config.landmark_addr.ip(),
-                config.landmark_addr.port(),
-                LANDMARK_AGENT_NAME.to_string(),
-            );
-
             // init logger
             loggerv::Logger::new()
                 .max_level(config.log_level)
@@ -150,6 +146,18 @@ fn main() {
                 .no_module_path()
                 .init()
                 .unwrap();
+
+            let mut landmark_info = NodeInfo::new(
+                config.landmark_addr.ip(),
+                config.landmark_addr.port(),
+                LANDMARK_AGENT_NAME.to_string(),
+            );
+
+            // landmark position is precise
+            landmark_info.set_coordinates(&NodeCoordinates {
+                pos_err: 0.0,
+                ..Default::default()
+            });
 
             // init storage
             let mut store = storage::Storage::new();

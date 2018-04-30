@@ -27,7 +27,7 @@ impl Hash for Node {
 
 impl PartialEq for Node {
     fn eq(&self, other: &Node) -> bool {
-        self.info.ip == other.info.ip && self.info.port == other.info.port
+        (self.info.ip == other.info.ip) && (self.info.port == other.info.port)
     }
 }
 
@@ -51,14 +51,29 @@ impl Storage {
 
     /// Add new or replace existing node's information
     pub fn add_node(&mut self, info: NodeInfo) {
+        // skip bad node info
+        // add info.ip.is_documentation() check after stabilization
+        if info.ip.is_unspecified() || info.ip.is_multicast() {
+            return;
+        }
+
+        // iteration allows to drop outdated information
+        let loc_iteration = info.location.iteration;
+
         let record = Node {
             info,
-            // set update ts to current
-            last_updated_sec: SystemTime::now()
+            last_updated_sec: SystemTime::now() // set to current
                 .duration_since(UNIX_EPOCH)
                 .map(|t| t.as_secs())
                 .unwrap_or(0),
         };
+
+        // do not store stalled location info
+        if let Some(saved) = self.nodes.get(&record) {
+            if saved.info.location.iteration >= loc_iteration {
+                return;
+            }
+        }
 
         self.nodes.replace(record);
     }
@@ -73,7 +88,7 @@ impl Storage {
         max_nodes: usize,
         ignore: &[SocketAddr],
     ) -> Option<Vec<&NodeInfo>> {
-        // do not start on bad conditions
+        // do not even start on bad conditions
         if self.nodes.is_empty() || max_nodes < 1 {
             return None;
         }
@@ -142,14 +157,11 @@ impl Storage {
     }
 
     pub fn update_location(&mut self, received_location: &NodeCoordinates, rtt: Duration) {
-        let rtt_sec = rtt.as_secs() as f64 + (rtt.subsec_nanos() as f64 / 1_000_000.0);
+        let rtt_sec = rtt.as_secs() as f64 + (rtt.subsec_nanos() as f64 / 1_000_000_000.0);
 
         // recompute location
         let updated_location =
             vivaldi::compute_location(&self.location, received_location, rtt_sec, &mut self.rng);
-
-        // todo remove
-        println!("DEBUG | node location updated: {:?}", updated_location);
 
         self.location = updated_location;
     }
@@ -267,6 +279,7 @@ mod tests {
             x2: 76.001,
             height: 10.23,
             pos_err: 0.05,
+            iteration: 52852,
         };
 
         s.set_location(coord.clone());

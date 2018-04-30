@@ -10,9 +10,12 @@ use std::ops::{Add, Mul, Sub};
 use rand::Rng;
 use super::NodeCoordinates;
 
-// todo set recommended in paper!
+// paper recommended
 const NODE_ERROR_COEFF: f64 = 0.25; // C_c
 const LOCAL_ERROR_WMA_COEFF: f64 = 0.5; // C_e
+
+
+/* Height-vector arithmetic */
 
 #[derive(Debug, Copy, Clone)]
 struct HeightVector2D {
@@ -99,34 +102,41 @@ impl HeightVector2D {
     }
 }
 
-/* Computation */
+/* Network coordinate system */
 
 pub fn compute_location<R: Rng>(
-    local_node: &NodeCoordinates,
-    remote_node: &NodeCoordinates,
+    local: &NodeCoordinates,
+    remote: &NodeCoordinates,
     rtt_sec: f64,
     rng: &mut R,
 ) -> NodeCoordinates {
-    let sample_weight = local_node.pos_err / (local_node.pos_err + remote_node.pos_err);
+    // w
+    let sample_weight = local.pos_err / (local.pos_err + remote.pos_err);
 
-    let computed_distance = node_distance(local_node, remote_node);
+    // || x_i - x_j ||
+    let computed_distance = node_distance(local, remote);
 
+    // e_s
     let sample_err = (computed_distance - rtt_sec).abs() / rtt_sec;
 
+    // e_i
     let new_pos_err = sample_err * LOCAL_ERROR_WMA_COEFF * sample_weight
-        + local_node.pos_err * (1.0 - LOCAL_ERROR_WMA_COEFF * sample_weight);
+        + local.pos_err * (1.0 - LOCAL_ERROR_WMA_COEFF * sample_weight);
 
+    // delta
     let timestep = NODE_ERROR_COEFF * sample_weight;
 
-    let new_pos_vec = HeightVector2D::from(local_node)
-        + (HeightVector2D::from(local_node) - HeightVector2D::from(remote_node)).unit(rng)
-            * timestep * computed_distance;
+    // updated x_i
+    let new_pos_vec = HeightVector2D::from(local)
+        + (HeightVector2D::from(local) - HeightVector2D::from(remote)).unit(rng)
+            * timestep * (rtt_sec - computed_distance);
 
     NodeCoordinates {
         x1: new_pos_vec.x1,
         x2: new_pos_vec.x2,
         height: new_pos_vec.height,
         pos_err: new_pos_err,
+        iteration: local.iteration + 1,
     }
 }
 

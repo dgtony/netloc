@@ -97,8 +97,8 @@ fn main() {
                 .unwrap();
 
             info!(
-                "landmark agent started at {}:{}",
-                config.agent_addr, config.agent_port
+                "{} started at {}:{}",
+                config.agent_name, config.agent_addr, config.agent_port
             );
 
             if let Err(e) = agent::run_landmark_agent(&config) {

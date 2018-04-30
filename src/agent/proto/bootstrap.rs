@@ -13,12 +13,12 @@ use super::*;
 /// Send it to bootstrap server in order to obtain some neighbour's addresses
 #[derive(Debug, PartialOrd, PartialEq)]
 pub struct BootstrapRequest {
-    pub local_name: String,
+    pub sender_name: String,
 }
 
 impl BootstrapRequest {
-    pub fn new(local_name: String) -> Self {
-        BootstrapRequest { local_name }
+    pub fn new(sender_name: String) -> Self {
+        BootstrapRequest { sender_name }
     }
 }
 
@@ -26,7 +26,7 @@ impl<'a> BinarySerializable<'a> for BootstrapRequest {
     type Item = Self;
 
     fn serialize(&self) -> Option<Vec<u8>> {
-        let mut name_serialized = serialize_str(&self.local_name)?;
+        let mut name_serialized = serialize_str(&self.sender_name)?;
 
         // insert msg code to create request payload
         name_serialized.insert(0, types::MsgType::BootstrapReq.to_code());
@@ -37,7 +37,7 @@ impl<'a> BinarySerializable<'a> for BootstrapRequest {
     fn deserialize(data: &'a [u8]) -> Option<Self> {
         let (name, _) = deserialize_str(data)?;
         Some(BootstrapRequest {
-            local_name: name.to_string(),
+            sender_name: name.to_string(),
         })
     }
 }

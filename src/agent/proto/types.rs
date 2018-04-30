@@ -66,13 +66,14 @@ pub struct NodeCoordinates {
     pub x2: f64,
     pub height: f64,
     pub pos_err: f64,
+    pub iteration: u32,
 }
 
 impl NodeCoordinates {
     pub fn empty() -> Self {
         NodeCoordinates {
-            pos_err: 1.0, // maximum error
-            .. Default::default()
+            pos_err: 1.0, // initial error
+            ..Default::default()
         }
     }
 }
@@ -120,21 +121,22 @@ impl NodeInfo {
             x2: coordinates.x2,
             height: coordinates.height,
             pos_err: coordinates.pos_err,
+            iteration: coordinates.iteration,
         }
     }
 }
 
 /// NodeInfo structure protocol layout
 ///
-/// +---------------------------------------+------------------------+------+-------------+-------------------+
-/// |                 Flags                 |       IP-address       | Port |  Node name  |     Coordinates   |
-/// |---------------------------------------+                        |      +-----+-------+----+----+----+----+
-/// | x | x | x | x | x | x | x | addr_type |                        |  u16 | len | bytes |  X |  Y |  H |  E |
-/// +---------------------------+-----------+------------------------+------+-----+-------+----+----+----+----+
-/// | 1 | 1 | 1 | 1 | 1 | 1 | 1 |     1     |                        |      |  1  |  var  |  f |  f |  f |  f |
-/// +---------------------------------------+                        |      +-----+-------+----+----+----+----+
-/// |                  8                    | 32 (IPv4) / 128 (IPv6) |  16  |     var     | 64 | 64 | 64 | 64 |
-/// +---------------------------------------+------------------------+------+-------------+----+----+----+----+
+/// +---------------------------------------+------------------------+------+-------------+------------------------+
+/// |                 Flags                 |       IP-address       | Port |  Node name  |       Coordinates      |
+/// |---------------------------------------+                        |      +-----+-------+----+----+----+----+----+
+/// | x | x | x | x | x | x | x | addr_type |                        |  u16 | len | bytes |  X |  Y |  H |  E |  I |
+/// +---------------------------+-----------+------------------------+------+-----+-------+----+----+----+----+----+
+/// | 1 | 1 | 1 | 1 | 1 | 1 | 1 |     1     |                        |      |  1  |  var  |  f |  f |  f |  f |  u |
+/// +---------------------------------------+                        |      +-----+-------+----+----+----+----+----+
+/// |                  8                    | 32 (IPv4) / 128 (IPv6) |  16  |     var     | 64 | 64 | 64 | 64 | 32 |
+/// +---------------------------------------+------------------------+------+-------------+----+----+----+----+----+
 ///
 /// Byte order is big-endian.
 ///
@@ -150,6 +152,7 @@ impl NodeInfo {
         // allocate maximum
         let mut msg_buff = Vec::with_capacity(19);
         let mut buff_2b: [u8; 2] = [0; 2];
+        let mut buff_4b: [u8; 4] = [0; 4];
         let mut buff_8b: [u8; 8] = [0; 8];
 
         match self.ip {
@@ -187,6 +190,10 @@ impl NodeInfo {
                 BigEndian::write_f64(&mut buff_8b, *e);
                 msg_buff.extend(buff_8b.iter())
             });
+
+        // position iteration
+        BigEndian::write_u32(&mut buff_4b, self.location.iteration);
+        msg_buff.extend(buff_4b.iter());
 
         msg_buff
     }
@@ -239,8 +246,8 @@ impl NodeInfo {
         let (name, unparsed) = deserialize_str(unparsed)?;
         let mut node_info = NodeInfo::new(addr, port, name.to_string());
 
-        // bytes required to decode 4 x f64 values
-        if unparsed.len() < 32 {
+        // bytes required to decode 4 x f64 + 1 x u32 values
+        if unparsed.len() < 36 {
             return None;
         }
 
@@ -250,9 +257,10 @@ impl NodeInfo {
             x2: BigEndian::read_f64(&unparsed[8..16]),
             height: BigEndian::read_f64(&unparsed[16..24]),
             pos_err: BigEndian::read_f64(&unparsed[24..32]),
+            iteration: BigEndian::read_u32(&unparsed[32..36]),
         });
 
-        Some((node_info, &unparsed[32..]))
+        Some((node_info, &unparsed[36..]))
     }
 }
 
@@ -263,7 +271,7 @@ mod tests {
     #[test]
     fn node_info_serialization_zero_coordinates() {
         let addr = IpAddr::from(Ipv4Addr::new(1, 2, 3, 4));
-        let mut info = NodeInfo::new(addr, 1028, "test".to_string());
+        let info = NodeInfo::new(addr, 1028, "test".to_string());
 
         let encoded = info.serialize();
 
@@ -283,6 +291,7 @@ mod tests {
             x2: 2.0,
             height: 3.0,
             pos_err: 0.5,
+            iteration: 12,
         });
 
         let encoded = info.serialize();

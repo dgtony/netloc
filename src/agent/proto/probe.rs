@@ -23,14 +23,14 @@ use agent::proto::BinarySerializable;
 pub struct ProbeRequest {
     pub sent_at_sec: u64,
     pub sent_at_nsec: u32,
-    pub transmitter_name: String,
+    pub sender_name: String,
     pub neighbours: Option<NodeList>,
 }
 
 impl ProbeRequest {
     pub fn new(name: String) -> Self {
         ProbeRequest {
-            transmitter_name: name, // fixme use &'a str
+            sender_name: name, // fixme use &'a str
             sent_at_sec: 0,
             sent_at_nsec: 0,
             neighbours: None,
@@ -70,7 +70,7 @@ impl<'a> BinarySerializable<'a> for ProbeRequest {
         msg_buff.extend(buff_4b.iter());
 
         // probe initiator's name
-        msg_buff.extend(serialize_str(&self.transmitter_name)?);
+        msg_buff.extend(serialize_str(&self.sender_name)?);
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
@@ -128,7 +128,7 @@ impl<'a> BinarySerializable<'a> for ProbeRequest {
 pub struct ProbeResponse {
     pub sent_at_sec: u64,
     pub sent_at_nsec: u32,
-    pub receiver_name: String,
+    pub respondent_name: String,
     pub location: NodeCoordinates,
     pub neighbours: Option<NodeList>,
 }
@@ -136,7 +136,7 @@ pub struct ProbeResponse {
 impl ProbeResponse {
     pub fn new(name: String, location: NodeCoordinates) -> Self {
         ProbeResponse {
-            receiver_name: name,
+            respondent_name: name,
             sent_at_sec: 0,
             sent_at_nsec: 0,
             location,
@@ -172,7 +172,7 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
         msg_buff.extend(buff_4b.iter());
 
         // probe respondent's name
-        msg_buff.extend(serialize_str(&self.receiver_name)?);
+        msg_buff.extend(serialize_str(&self.respondent_name)?);
 
         // coordinates
         [
@@ -185,6 +185,9 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
                 BigEndian::write_f64(&mut buff_8b, *e);
                 msg_buff.extend(buff_8b.iter())
             });
+        // iteration
+        BigEndian::write_u32(&mut buff_4b, self.location.iteration);
+        msg_buff.extend(buff_4b.iter());
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
@@ -208,7 +211,7 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
         let (respondent_name, mut unparsed) = deserialize_str(unparsed)?;
 
         // bytes required to decode coordinates
-        if unparsed.len() < 32 {
+        if unparsed.len() < 36 {
             return None;
         }
 
@@ -218,9 +221,10 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
             x2: BigEndian::read_f64(&unparsed[8..16]),
             height: BigEndian::read_f64(&unparsed[16..24]),
             pos_err: BigEndian::read_f64(&unparsed[24..32]),
+            iteration: BigEndian::read_u32(&unparsed[32..36]),
         };
 
-        unparsed = &unparsed[32..];
+        unparsed = &unparsed[36..];
 
         // create message
         let mut msg = ProbeResponse::new(respondent_name.to_string(), respondent_location);
@@ -267,6 +271,7 @@ mod tests {
             x2: 23.65,
             height: 0.34,
             pos_err: 0.5,
+            iteration: 127,
         };
 
         let mut resp = ProbeResponse::new("respondent_node".to_string(), location);

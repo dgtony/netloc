@@ -101,20 +101,22 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
 
 pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
     let mut store = Storage::new();
-    store.set_location(NodeCoordinates { pos_err: 0.0, .. Default::default() });
+    store.set_location(NodeCoordinates {
+        pos_err: 0.0,
+        ..Default::default()
+    });
     let store = Arc::new(Mutex::new(store));
 
     // run receiver in separate thread
     let rx_thread = {
         let store = store.clone();
         let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
-
         let agent_name = config.agent_name.clone();
 
         thread::spawn(move || {
             let r = Receiver::new(AgentType::Landmark, agent_name, store, sock);
             if let Err(e) = r.run() {
-                panic!("landmark-agent failure: {}", e);
+                panic!("agent failure: {}", e);
             }
         })
     };
