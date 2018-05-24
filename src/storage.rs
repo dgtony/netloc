@@ -96,7 +96,9 @@ impl Storage {
         // pointers to all known nodes besides ignored ones
         let nptr: Vec<&Node> = self.nodes
             .iter()
-            .filter(|&n| !ignore.contains(&SocketAddr::new(n.info.ip, n.info.port)))
+            .filter(|&n| {
+                !ignore.contains(&SocketAddr::new(n.info.ip, n.info.port))
+            })
             .collect();
 
         let num_values_to_return: usize = if max_nodes < nptr.len() {
@@ -144,6 +146,19 @@ impl Storage {
     /// Return local node's full view.
     pub fn get_all_nodes(&self) -> NodeList {
         self.nodes.iter().map(|n| n.info.clone()).collect()
+    }
+
+
+    /// Try to find stored information about node based on its network address
+    pub fn find_node(&self, addr: SocketAddr) -> Option<NodeInfo> {
+        // temporary record to find info
+        let record = Node {
+            info: NodeInfo::new(addr.ip(), addr.port(), String::new()),
+            last_updated_sec: 0,
+        };
+
+        let node = self.nodes.get(&record)?;
+        Some(node.info.clone())
     }
 
     /// Return position of local node in RTT-based coordinate space
