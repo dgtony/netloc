@@ -12,7 +12,7 @@ use agent::{vivaldi, NodeCoordinates, NodeInfo, NodeList};
 
 pub type SharedStorage = Arc<Mutex<Storage>>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node {
     info: NodeInfo,
     last_updated_sec: u64,
@@ -150,7 +150,7 @@ impl Storage {
 
 
     /// Try to find stored information about node based on its network address
-    pub fn find_node(&self, addr: SocketAddr) -> Option<NodeInfo> {
+    pub fn find_node(&self, addr: SocketAddr) -> Option<Node> {
         // temporary record to find info
         let record = Node {
             info: NodeInfo::new(addr.ip(), addr.port(), String::new()),
@@ -158,7 +158,7 @@ impl Storage {
         };
 
         let node = self.nodes.get(&record)?;
-        Some(node.info.clone())
+        Some(node.clone())
     }
 
     /// Return position of local node in RTT-based coordinate space
