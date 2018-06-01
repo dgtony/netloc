@@ -9,7 +9,8 @@ use futures::future;
 
 use std::net::SocketAddr;
 
-use super::proto::*;
+use storage::SharedStorage;
+use super::proto::{Request, Response, REASON_BAD_REQUEST};
 use super::actions::process_request;
 
 use serde_json;
@@ -19,15 +20,17 @@ use serde_json;
 pub struct Client<T, U> {
     stream: Framed<T, U>,
     peer_addr: SocketAddr,
+    store: SharedStorage,
 }
 
 
 impl Client<TcpStream, LinesCodec> {
-    pub fn new(s: TcpStream) -> Self {
+    pub fn new(s: TcpStream, store: SharedStorage) -> Self {
         let peer_addr = s.peer_addr().unwrap();
         Client {
             stream: s.framed(LinesCodec::new()),
             peer_addr,
+            store,
         }
     }
 }
@@ -41,24 +44,16 @@ impl Future for Client<TcpStream, LinesCodec> {
         loop {
             match try_ready!(self.stream.poll()) {
                 Some(msg) => {
-
-                    // todo remove
-                    debug!("client {} | read line from socket: {}", self.peer_addr, msg);
-
-                    // todo decode & process request
                     let response = match serde_json::from_str::<Request>(&msg) {
-                        Ok(request) => {
-                            // todo remove
-                            println!("request parsed: {:?}", request);
-
-                            process_request(request)
-                        }
-
+                        Ok(request) => process_request(request, &mut self.store),
                         Err(e) => {
-                            println!("get bad request: {} | reason: {}", msg, e);
-                            Response::Failure {
-                                reason: Some(REASON_BAD_MESSAGE),
-                            }
+                            debug!(
+                                "bad request from {}, error: {}, message: {}",
+                                self.peer_addr,
+                                e,
+                                msg
+                            );
+                            Response::Failure { reason: REASON_BAD_REQUEST }
                         }
                     };
 
@@ -69,7 +64,7 @@ impl Future for Client<TcpStream, LinesCodec> {
                 }
 
                 None => {
-                    debug!("client closed: {}", self.peer_addr);
+                    debug!("client disconnected: {}", self.peer_addr);
                     return Ok(Async::Ready(()));
                 }
             }

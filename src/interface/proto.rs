@@ -3,52 +3,61 @@
 //! Encoded messages are delimited with newline symbols
 //!
 
-use agent::NodeInfo;
+use std::net::IpAddr;
+
+use agent::{NodeInfo, NodeCoordinates, NodeList};
 use storage::Node;
 
 /* Error reasons */
-pub const REASON_BAD_MESSAGE: &str = "bad message";
+pub const REASON_BAD_REQUEST: &str = "bad request";
+pub const REASON_BAD_NODE_ADDR: &str = "bad node address";
+pub const REASON_NODE_NOT_FOUND: &str = "node not found";
+pub const REASON_NO_INFORMATION: &str = "no information";
 
 /* Messages */
 
-// todo use enum of requests
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
+#[serde(tag = "action")]
 #[serde(rename_all = "snake_case")]
-pub enum Actions {
+pub enum Request {
     GetLocation,
-    GetNodeInfo,
-    GetRecentNodes,
     GetFullMap,
+    GetNodeInfo { node_addr: String },
+    GetRecentNodes { max_nodes: Option<usize> },
 }
 
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Request {
-    pub action: Actions,
-    pub node_addr: Option<String>,
-    pub max_nodes: Option<usize>,
-}
-
-// todo use enum of various responses
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
-#[serde(tag="type")]
+#[serde(tag = "type")]
 pub enum Response {
-    Location {
-        // todo add payload
-        msg: String,
-    },
+    Location { loc: NodeCoordinates },
+    FullMap { nodes: NodeList },
+    NodeInfo { info: NodeInfoFull },
+    RecentNodes { nodes: NodeList },
 
-    NodeInfo {
-        // todo add payload
-        msg: String,
-    },
+    // general unsuccessful response
+    Failure { reason: &'static str },
+}
 
-    // todo add all variants
+/* Protocol specific structures */
 
-    Failure {
-        reason: Option<&'static str>,
+#[derive(Debug, Serialize)]
+pub struct NodeInfoFull {
+    pub ip: IpAddr,
+    pub port: u16,
+    pub name: String,
+    pub location: NodeCoordinates,
+    pub updated_at: u64,
+}
+
+impl From<Node> for NodeInfoFull {
+    fn from(node_info: Node) -> Self {
+        NodeInfoFull {
+            ip: node_info.info.ip,
+            port: node_info.info.port,
+            name: node_info.info.name,
+            location: node_info.info.location,
+            updated_at: node_info.last_updated_sec,
+        }
     }
 }

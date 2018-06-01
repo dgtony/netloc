@@ -100,6 +100,10 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
 }
 
 pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
+    if config.interface_addr.is_none() {
+        return Err(io::Error::new(io::ErrorKind::Other, "bad interface address provided"));
+    }
+
     let mut store = Storage::new();
     store.set_location(NodeCoordinates {
         pos_err: 0.0,
@@ -121,11 +125,8 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
         })
     };
 
-    // - run interface server ?
-    interface::run_interface(store);
-
-    // todo remove
-    rx_thread.join();
+    // run interface server
+    interface::run_server(config.interface_addr.unwrap(), store);
 
     Ok(())
 }

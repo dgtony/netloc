@@ -38,7 +38,7 @@ impl MsgType {
 
 pub type NodeList = Vec<NodeInfo>;
 
-#[derive(Debug, PartialOrd, PartialEq, Clone)]
+#[derive(Debug, PartialOrd, PartialEq, Clone, Serialize)]
 pub struct NodeFlags {
     is_addr_ipv6: bool,
 }
@@ -60,7 +60,7 @@ impl NodeFlags {
     }
 }
 
-#[derive(Debug, Default, PartialOrd, PartialEq, Clone)]
+#[derive(Debug, Default, PartialOrd, PartialEq, Clone, Serialize)]
 pub struct NodeCoordinates {
     pub x1: f32,
     pub x2: f32,
@@ -78,7 +78,7 @@ impl NodeCoordinates {
     }
 }
 
-#[derive(Debug, PartialOrd, PartialEq, Clone)]
+#[derive(Debug, PartialOrd, PartialEq, Clone, Serialize)]
 pub struct NodeInfo {
     pub flags: NodeFlags,
     pub ip: IpAddr,

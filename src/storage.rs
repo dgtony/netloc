@@ -14,8 +14,8 @@ pub type SharedStorage = Arc<Mutex<Storage>>;
 
 #[derive(Debug, Clone)]
 pub struct Node {
-    info: NodeInfo,
-    last_updated_sec: u64,
+    pub info: NodeInfo,
+    pub last_updated_sec: u64,
 }
 
 impl Hash for Node {
@@ -123,7 +123,7 @@ impl Storage {
 
     /// Return 'max_nodes' most recently updated nodes, sorted by last update time.
     pub fn get_most_recent(&self, max_nodes: usize) -> Option<Vec<&NodeInfo>> {
-        if self.nodes.is_empty() || max_nodes < 1 {
+        if self.nodes.is_empty() {
             return None;
         }
 
