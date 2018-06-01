@@ -51,6 +51,8 @@ pub struct AgentConfig {
 }
 
 pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
+    check_interface_addr(config)?;
+
     let node_name = config.agent_name.clone();
 
     // shared parameters
@@ -91,18 +93,14 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
         })
     };
 
-    // - run interface server
-
-    // todo remove
-    rx_thread.join();
+    // run interface server
+    interface::run_server(config.interface_addr.unwrap(), store);
 
     Ok(())
 }
 
 pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
-    if config.interface_addr.is_none() {
-        return Err(io::Error::new(io::ErrorKind::Other, "bad interface address provided"));
-    }
+    check_interface_addr(config)?;
 
     let mut store = Storage::new();
     store.set_location(NodeCoordinates {
@@ -129,4 +127,12 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
     interface::run_server(config.interface_addr.unwrap(), store);
 
     Ok(())
+}
+
+
+fn check_interface_addr(config: &AgentConfig) -> io::Result<()> {
+    match config.interface_addr {
+        Some(_) => Ok(()),
+        None => Err(io::Error::new(io::ErrorKind::Other, "bad interface address provided"))
+    }
 }
