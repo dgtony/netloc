@@ -36,9 +36,7 @@ impl<'a> BinarySerializable<'a> for BootstrapRequest {
 
     fn deserialize(data: &'a [u8]) -> Option<Self> {
         let (name, _) = deserialize_str(data)?;
-        Some(BootstrapRequest {
-            sender_name: name.to_string(),
-        })
+        Some(BootstrapRequest { sender_name: name.to_string() })
     }
 }
 
@@ -60,9 +58,7 @@ pub struct BootstrapResponse {
 
 impl BootstrapResponse {
     pub fn empty() -> Self {
-        BootstrapResponse {
-            neighbours: Vec::new(),
-        }
+        BootstrapResponse { neighbours: Vec::new() }
     }
 }
 
@@ -73,9 +69,9 @@ impl<'de> BinarySerializable<'de> for BootstrapResponse {
         let mut msg_buff = Vec::new();
         msg_buff.insert(0, types::MsgType::BootstrapResp.to_code());
         // serialize neighbours
-        self.neighbours
-            .iter()
-            .for_each(|n| msg_buff.extend(n.serialize()));
+        self.neighbours.iter().for_each(
+            |n| msg_buff.extend(n.serialize()),
+        );
 
         Some(msg_buff)
     }
@@ -125,17 +121,17 @@ mod tests {
             NodeInfo::new(
                 IpAddr::from(Ipv4Addr::new(1, 2, 3, 4)),
                 1001,
-                "first".to_string(),
+                "first".to_string()
             ),
             NodeInfo::new(
                 IpAddr::from(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, 8)),
                 1002,
-                "second".to_string(),
+                "second".to_string()
             ),
             NodeInfo::new(
                 IpAddr::from(Ipv4Addr::new(10, 252, 33, 17)),
                 1003,
-                "third".to_string(),
+                "third".to_string()
             ),
         ];
         let resp = BootstrapResponse { neighbours: nodes };

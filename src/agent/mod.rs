@@ -11,8 +11,6 @@
 //!
 //! NB: there must be ONLY ONE landmark agent in the network!!!
 //!
-extern crate log;
-
 mod receiver;
 mod transmitter;
 mod proto;
@@ -21,9 +19,11 @@ pub mod vivaldi;
 pub use self::proto::*;
 
 use super::storage::Storage;
+use super::interface;
 use self::transmitter::Transmitter;
 use self::receiver::Receiver;
 
+use log;
 use std::io;
 use std::thread;
 use std::sync::{Arc, Mutex};
@@ -122,6 +122,7 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
     };
 
     // - run interface server ?
+    interface::run_interface(store);
 
     // todo remove
     rx_thread.join();

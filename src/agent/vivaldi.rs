@@ -119,16 +119,16 @@ pub fn compute_location<R: Rng>(
     let sample_err = (computed_distance - rtt_sec).abs() / rtt_sec;
 
     // e_i
-    let new_pos_err = sample_err * LOCAL_ERROR_WMA_COEFF * sample_weight
-        + local.pos_err * (1.0 - LOCAL_ERROR_WMA_COEFF * sample_weight);
+    let new_pos_err = sample_err * LOCAL_ERROR_WMA_COEFF * sample_weight +
+        local.pos_err * (1.0 - LOCAL_ERROR_WMA_COEFF * sample_weight);
 
     // delta
     let timestep = NODE_ERROR_COEFF * sample_weight;
 
     // updated x_i
-    let new_pos_vec = HeightVector2D::from(local)
-        + (HeightVector2D::from(local) - HeightVector2D::from(remote)).unit(rng) * timestep
-            * (rtt_sec - computed_distance);
+    let new_pos_vec = HeightVector2D::from(local) +
+        (HeightVector2D::from(local) - HeightVector2D::from(remote)).unit(rng) * timestep *
+            (rtt_sec - computed_distance);
 
     NodeCoordinates {
         x1: new_pos_vec.x1,

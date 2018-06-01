@@ -84,10 +84,11 @@ impl Receiver {
                         response.copy_time(&request);
 
                         // add some neighbour's info
-                        if let Some(neighbours) = s.get_random_nodes(
-                            GOSSIP_MAX_NEIGHBOURS_IN_MSG,
-                            &[sender, self.local_addr],
-                        ).and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
+                        if let Some(neighbours) =
+                            s.get_random_nodes(
+                                GOSSIP_MAX_NEIGHBOURS_IN_MSG,
+                                &[sender, self.local_addr],
+                            ).and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
                         {
                             response.set_neighbours(neighbours);
                         }
@@ -115,9 +116,9 @@ impl Receiver {
 
                 Some(MsgType::ProbeResponse) => {
                     // message reception time
-                    let received_at = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                    let received_at = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|e| {
+                        io::Error::new(io::ErrorKind::Other, e)
+                    })?;
 
                     // decode and process
                     ProbeResponse::deserialize(msg_data).and_then(|response| {
@@ -132,8 +133,10 @@ impl Receiver {
                         let mut s = self.store.lock().unwrap();
 
                         // recompute own location based on response's RTT
-                        if let Some(rtt) = received_at
-                            .checked_sub(Duration::new(response.sent_at_sec, response.sent_at_nsec))
+                        if let Some(rtt) = received_at.checked_sub(Duration::new(
+                            response.sent_at_sec,
+                            response.sent_at_nsec,
+                        ))
                         {
                             s.update_location(&response.location, rtt);
                         }

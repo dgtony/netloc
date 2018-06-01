@@ -148,7 +148,6 @@ impl Storage {
         self.nodes.iter().map(|n| n.info.clone()).collect()
     }
 
-
     /// Try to find stored information about node based on its network address
     pub fn find_node(&self, addr: SocketAddr) -> Option<Node> {
         // temporary record to find info

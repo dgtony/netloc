@@ -4,6 +4,11 @@ extern crate loggerv;
 extern crate rand;
 
 #[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
+#[macro_use]
 extern crate futures;
 extern crate tokio;
 extern crate tokio_io;

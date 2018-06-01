@@ -48,7 +48,9 @@ impl Transmitter {
             if let Some((receiver, neighbours)) = self.get_nodes() {
                 debug!(
                     "probing {}:{} (aka {})",
-                    receiver.ip, receiver.port, &receiver.name
+                    receiver.ip,
+                    receiver.port,
+                    &receiver.name
                 );
 
                 // create request
@@ -59,8 +61,10 @@ impl Transmitter {
                 request.set_current_time();
 
                 if let Some(encoded) = request.serialize() {
-                    self.sock
-                        .send_to(&encoded, SocketAddr::new(receiver.ip, receiver.port))?;
+                    self.sock.send_to(
+                        &encoded,
+                        SocketAddr::new(receiver.ip, receiver.port),
+                    )?;
                 }
             } else {
                 let request = BootstrapRequest::new(self.name.clone());
@@ -76,7 +80,10 @@ impl Transmitter {
 
     fn get_nodes(&self) -> Option<(NodeInfo, Vec<NodeInfo>)> {
         let mut store = self.store.lock().unwrap();
-        let nodes = store.get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG + 1, &[self.local_addr])?;
+        let nodes = store.get_random_nodes(
+            GOSSIP_MAX_NEIGHBOURS_IN_MSG + 1,
+            &[self.local_addr],
+        )?;
         let receiver = nodes[0].clone();
         let neighbours: NodeList = nodes.iter().skip(1).map(|&n| (*n).clone()).collect();
 

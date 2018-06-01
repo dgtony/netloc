@@ -74,9 +74,9 @@ impl<'a> BinarySerializable<'a> for ProbeRequest {
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
-            neighbours
-                .iter()
-                .for_each(|n| msg_buff.extend(n.serialize()));
+            neighbours.iter().for_each(
+                |n| msg_buff.extend(n.serialize()),
+            );
         }
 
         Some(msg_buff)
@@ -191,9 +191,9 @@ impl<'de> BinarySerializable<'de> for ProbeResponse {
 
         // neighbours
         if let Some(ref neighbours) = self.neighbours {
-            neighbours
-                .iter()
-                .for_each(|n| msg_buff.extend(n.serialize()));
+            neighbours.iter().for_each(
+                |n| msg_buff.extend(n.serialize()),
+            );
         }
 
         Some(msg_buff)
