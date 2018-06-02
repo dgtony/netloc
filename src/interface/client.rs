@@ -64,7 +64,7 @@ impl Future for Client<TcpStream, LinesCodec> {
                 }
 
                 None => {
-                    debug!("client disconnected: {}", self.peer_addr);
+                    info!("client disconnected: {}", self.peer_addr);
                     return Ok(Async::Ready(()));
                 }
             }
