@@ -103,7 +103,7 @@ mod tests {
         let data = vec![4, 116, 101, 115, 116];
         if let Some((s, rest)) = deserialize_str(&data) {
             assert_eq!(s, "test");
-            assert_eq!(rest, &[]);
+            assert_eq!(rest.len(), 0);
         } else {
             panic!("cannot deserialize string");
         }

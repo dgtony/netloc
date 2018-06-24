@@ -21,8 +21,8 @@ use netloc::{agent, arg_validator::*};
 fn parse_args() -> Option<agent::AgentConfig> {
     let args = App::new("netloc-agent")
         .version("0.1")
-        .author("Anton Dort-Golts dortgolts@gmail.com")
-        .about("Regular positioning agent for the Vivaldi network coordinate system")
+        .author("Anton Dort-Golts <dortgolts@gmail.com>")
+        .about("Location agent of the Vivaldi network coordinate system")
         .arg(
             Arg::with_name("addr")
                 .short("a")

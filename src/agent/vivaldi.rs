@@ -78,25 +78,25 @@ impl HeightVector2D {
     }
 
     pub fn unit<R: Rng>(self, rng: &mut R) -> Self {
-        let flat_vec_norm = HeightVector2D {
+        let vec_norm = HeightVector2D {
             x1: self.x1,
             x2: self.x2,
-            height: 0.0,
+            height: self.height,
         }.norm();
 
-        if flat_vec_norm < 1e-9 {
-            // generate random direction vector
+        if vec_norm < 1e-9 {
+            // generate random vector
             return HeightVector2D {
                 x1: rng.next_f32(),
                 x2: rng.next_f32(),
-                height: 0.0,
+                height: rng.next_f32(),
             }.unit(rng);
         }
 
         HeightVector2D {
-            x1: self.x1 / flat_vec_norm,
-            x2: self.x2 / flat_vec_norm,
-            height: 0.0,
+            x1: self.x1 / vec_norm,
+            x2: self.x2 / vec_norm,
+            height: self.height / vec_norm,
         }
     }
 }
@@ -170,9 +170,7 @@ mod tests {
         };
 
         let unit = vec.unit(&mut rng);
-
         assert_eq!(unit.norm(), 1.0);
-        assert_eq!(unit.height, 0.0);
     }
 
     #[test]
