@@ -1,8 +1,13 @@
-//! Landmark agent
+//! Landmark node
 //!
-//! Simple agent that has hardcoded zero coordinates and never
-//! recalculate it. This agent could be used as an anchor
-//! for drifting network coordinates.
+//! Simple server that has hardcoded zero coordinates and never
+//! recalculates it. Landmark is a mandatory part of the network location
+//! infrastructure and has following objectives:
+//!
+//! * performs as a bootstrap, allowing recently connected agents
+//! to find its first neighbours and start communication;
+//! * defines zero point in local system of network coordinates;
+//! * works as an anchor avoiding network coordinates drift.
 //!
 extern crate clap;
 #[macro_use]
@@ -20,8 +25,8 @@ use netloc::{agent, arg_validator::*};
 fn parse_args() -> Option<agent::AgentConfig> {
     let args = App::new("netloc-landmark")
         .version("0.1")
-        .author("Anton Dort-Golts dortgolts@gmail.com")
-        .about("Landmark agent for the Vivaldi network coordinate system")
+        .author("Anton Dort-Golts <dortgolts@gmail.com>")
+        .about("Landmark node for the Vivaldi network coordinate system")
         .arg(
             Arg::with_name("addr")
                 .short("a")
@@ -76,7 +81,7 @@ fn parse_args() -> Option<agent::AgentConfig> {
         agent_name,
         interface_addr,
         log_level,
-        bootstrap_addr: None,
+        landmark_addr: None,
         probe_period: None,
     };
 

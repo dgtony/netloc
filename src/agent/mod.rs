@@ -46,7 +46,7 @@ pub struct AgentConfig {
     pub agent_name: String,
     pub probe_period: Option<Duration>,
     pub interface_addr: Option<SocketAddr>,
-    pub bootstrap_addr: Option<SocketAddr>,
+    pub landmark_addr: Option<SocketAddr>,
     pub log_level: log::Level,
 }
 
@@ -68,10 +68,10 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
             .probe_period
             .expect("probe period not specified")
             .clone();
-        let bootstrap_addr = config.bootstrap_addr.unwrap().clone();
+        let landmark_addr = config.landmark_addr.unwrap().clone();
 
         thread::spawn(move || {
-            let t = Transmitter::new(node_name, bootstrap_addr, store, sock, period);
+            let t = Transmitter::new(node_name, landmark_addr, store, sock, period);
 
             if let Err(e) = t.run() {
                 panic!("agent-transmitter failure: {}", e);

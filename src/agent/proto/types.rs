@@ -6,8 +6,6 @@ use super::byteorder::{BigEndian, ByteOrder};
 use super::*;
 
 pub enum MsgType {
-    BootstrapReq,
-    BootstrapResp,
     ProbeRequest,
     ProbeResponse,
 }
@@ -15,19 +13,15 @@ pub enum MsgType {
 impl MsgType {
     pub fn to_code(&self) -> u8 {
         match *self {
-            MsgType::BootstrapReq => 1,
-            MsgType::BootstrapResp => 2,
-            MsgType::ProbeRequest => 10,
-            MsgType::ProbeResponse => 11,
+            MsgType::ProbeRequest => 1,
+            MsgType::ProbeResponse => 12,
         }
     }
 
     pub fn from_code(code: u8) -> Option<MsgType> {
         match code {
-            1 => Some(MsgType::BootstrapReq),
-            2 => Some(MsgType::BootstrapResp),
-            10 => Some(MsgType::ProbeRequest),
-            11 => Some(MsgType::ProbeResponse),
+            1 => Some(MsgType::ProbeRequest),
+            2 => Some(MsgType::ProbeResponse),
 
             _ => None,
         }

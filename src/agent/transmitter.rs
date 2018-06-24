@@ -1,7 +1,7 @@
 /// Periodically send probes.
 ///
-/// If neighbour table is empty, send Bootstrap request,
-/// otherwise - send Location request.
+/// If neighbour table is empty, send request to landmark node,
+/// otherwise - send regular Location request.
 
 use std::io;
 use std::time::Duration;
@@ -9,13 +9,12 @@ use std::thread;
 use std::net::{SocketAddr, UdpSocket};
 
 use agent::{BinarySerializable, NodeInfo, NodeList, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
-use agent::bootstrap::BootstrapRequest;
 use agent::probe::ProbeRequest;
 use storage::SharedStorage;
 
 pub struct Transmitter {
     name: String,
-    bootstrap: SocketAddr,
+    landmark: SocketAddr,
     store: SharedStorage,
     transmission_interval: Duration,
     sock: UdpSocket,
@@ -26,7 +25,7 @@ impl Transmitter {
     /// Create new transmitter object
     pub fn new(
         name: String,
-        bootstrap: SocketAddr,
+        landmark: SocketAddr,
         store: SharedStorage,
         sock: UdpSocket,
         transmission_interval: Duration,
@@ -34,7 +33,7 @@ impl Transmitter {
         let local_addr = sock.local_addr().expect("couldn't obtain socket address");
         Transmitter {
             name,
-            bootstrap,
+            landmark,
             store,
             transmission_interval,
             sock,
@@ -66,10 +65,14 @@ impl Transmitter {
                         SocketAddr::new(receiver.ip, receiver.port),
                     )?;
                 }
+
             } else {
-                let request = BootstrapRequest::new(self.name.clone());
+                // create empty request
+                let mut request = ProbeRequest::new(self.name.clone());
+                request.set_current_time();
+
                 if let Some(encoded) = request.serialize() {
-                    self.sock.send_to(&encoded, self.bootstrap)?;
+                    self.sock.send_to(&encoded, self.landmark)?;
                 }
             }
 

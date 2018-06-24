@@ -1,7 +1,6 @@
 /// Process all incoming UDP packets.
 ///
 /// Possible messages:
-/// - Bootstrap response;
 /// - Location request (foreign);
 /// - Location response (for the local request).
 
@@ -11,7 +10,6 @@ use std::net::{SocketAddr, UdpSocket};
 
 use storage::SharedStorage;
 use agent::{AgentType, BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
-use agent::bootstrap::BootstrapResponse;
 use agent::probe::{ProbeRequest, ProbeResponse};
 
 const RCV_BUFF_SIZE: usize = 1500;
@@ -53,17 +51,6 @@ impl Receiver {
             let msg_data = &buff[1..msg_len];
 
             match MsgType::from_code(buff[0]) {
-                Some(MsgType::BootstrapResp) => {
-                    debug!("get bootstrap response");
-
-                    // process bootstrap response
-                    BootstrapResponse::deserialize(msg_data).and_then(|msg| {
-                        let mut s = self.store.lock().unwrap(); // should never fail!
-                        msg.neighbours.into_iter().for_each(|n| s.add_node(n));
-                        Some(())
-                    });
-                }
-
                 Some(MsgType::ProbeRequest) => {
                     // respond to foreign request
                     let response = ProbeRequest::deserialize(msg_data).and_then(|request| {

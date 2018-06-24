@@ -73,11 +73,9 @@ fn parse_args() -> Option<agent::AgentConfig> {
                 .default_value("info"),
         )
         .arg(
-            Arg::with_name("bootstrap")
-                .short("b")
-                .long("bootstrap")
-                .value_name("address")
-                .help("Address of bootstrap server")
+            Arg::with_name("landmark")
+                .value_name("landmark node")
+                .help("Address of landmark node")
                 .takes_value(true)
                 .required(true)
                 .validator(validate_address),
@@ -101,9 +99,9 @@ fn parse_args() -> Option<agent::AgentConfig> {
     let probe_period = args.value_of("period")
         .and_then(|p| p.parse::<u16>().ok())
         .and_then(|t| Some(Duration::new(t as u64, 0)));
-    let bootstrap_addr = args.value_of("bootstrap")
+    let landmark_addr = args.value_of("landmark")
         .and_then(|a| a.to_socket_addrs().ok())
-        .and_then(|mut a| a.next())?;
+        .and_then(|mut a| a.next());
     let interface_addr = args.value_of("interface")
         .and_then(|a| a.to_socket_addrs().ok())
         .and_then(|mut a| a.next());
@@ -116,7 +114,7 @@ fn parse_args() -> Option<agent::AgentConfig> {
         agent_name,
         probe_period,
         interface_addr,
-        bootstrap_addr: Some(bootstrap_addr),
+        landmark_addr,
         log_level,
     };
 
