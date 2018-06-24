@@ -18,7 +18,7 @@ use clap::{App, Arg};
 use netloc::{agent, arg_validator::*};
 
 // fixme: parse for real and use errors (failure crate?)
-fn parse_args() -> Option<agent::AgentConfig> {
+fn parse_args() -> Option<agent::NodeConfig> {
     let args = App::new("netloc-agent")
         .version("0.1")
         .author("Anton Dort-Golts <dortgolts@gmail.com>")
@@ -108,10 +108,10 @@ fn parse_args() -> Option<agent::AgentConfig> {
 
     let log_level = args.value_of("log_level").and_then(|l| parse_log_level(l))?;
 
-    let config = agent::AgentConfig {
-        agent_addr,
-        agent_port,
-        agent_name,
+    let config = agent::NodeConfig {
+        node_addr: agent_addr,
+        node_port: agent_port,
+        node_name: agent_name,
         probe_period,
         interface_addr,
         landmark_addr,
@@ -135,11 +135,11 @@ fn main() {
                 .unwrap();
 
             info!(
-                "regular agent started at {}:{}",
-                config.agent_addr, config.agent_port
+                "agent started at {}:{}",
+                config.node_addr, config.node_port
             );
 
-            if let Err(e) = agent::run_regular_agent(&config) {
+            if let Err(e) = agent::run_agent(&config) {
                 panic!("agent failure: {}", e);
             }
         }

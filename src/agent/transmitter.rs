@@ -44,36 +44,20 @@ impl Transmitter {
     /// Start sending probes
     pub fn run(&self) -> io::Result<()> {
         loop {
-            if let Some((receiver, neighbours)) = self.get_nodes() {
-                debug!(
-                    "probing {}:{} (aka {})",
-                    receiver.ip,
-                    receiver.port,
-                    &receiver.name
-                );
+            let (receiver, neighbours) = self.get_nodes();
+            debug!("probing {}:{}", receiver.ip(), receiver.port());
 
-                // create request
-                let mut request = ProbeRequest::new(self.name.clone());
+            // create request
+            let mut request = ProbeRequest::new(self.name.clone());
+            if let Some(neighbours) = neighbours {
                 request.set_neighbours(neighbours);
+            }
 
-                // set sending time immediately before serialization
-                request.set_current_time();
+            // set sending time immediately before serialization
+            request.set_current_time();
 
-                if let Some(encoded) = request.serialize() {
-                    self.sock.send_to(
-                        &encoded,
-                        SocketAddr::new(receiver.ip, receiver.port),
-                    )?;
-                }
-
-            } else {
-                // create empty request
-                let mut request = ProbeRequest::new(self.name.clone());
-                request.set_current_time();
-
-                if let Some(encoded) = request.serialize() {
-                    self.sock.send_to(&encoded, self.landmark)?;
-                }
+            if let Some(encoded) = request.serialize() {
+                self.sock.send_to(&encoded, receiver)?;
             }
 
             // wait
@@ -81,16 +65,16 @@ impl Transmitter {
         }
     }
 
-    fn get_nodes(&self) -> Option<(NodeInfo, Vec<NodeInfo>)> {
+    fn get_nodes(&self) -> (SocketAddr, Option<NodeList>) {
         let mut store = self.store.lock().unwrap();
-        let nodes = store.get_random_nodes(
-            GOSSIP_MAX_NEIGHBOURS_IN_MSG + 1,
-            &[self.local_addr],
-        )?;
-        let receiver = nodes[0].clone();
-        let neighbours: NodeList = nodes.iter().skip(1).map(|&n| (*n).clone()).collect();
+        let receiver = store.random_receiver(&self.landmark);
 
-        Some((receiver, neighbours))
+        let neighbours: Option<NodeList> =
+            store
+                .get_random_nodes(GOSSIP_MAX_NEIGHBOURS_IN_MSG, &[self.local_addr, receiver])
+                .and_then(|nodes| Some(nodes.iter().map(|&n| (*n).clone()).collect()));
+
+        (receiver, neighbours)
     }
 }
 
@@ -125,8 +109,12 @@ mod tests {
 
         // ensure that receiver never appears in node list
         for i in 1..100 {
-            if let Some((receiver, nodes)) = trans.get_nodes() {
-                assert!(!nodes.contains(&receiver));
+            if let (receiver, Some(nodes)) = trans.get_nodes() {
+                assert!(!nodes.contains(&NodeInfo::new(
+                    receiver.ip(),
+                    receiver.port(),
+                    String::new(),
+                )));
             } else {
                 panic!("get_nodes() failed");
             }

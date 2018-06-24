@@ -22,7 +22,7 @@ use std::process;
 use clap::{App, Arg};
 use netloc::{agent, arg_validator::*};
 
-fn parse_args() -> Option<agent::AgentConfig> {
+fn parse_args() -> Option<agent::NodeConfig> {
     let args = App::new("netloc-landmark")
         .version("0.1")
         .author("Anton Dort-Golts <dortgolts@gmail.com>")
@@ -69,16 +69,16 @@ fn parse_args() -> Option<agent::AgentConfig> {
 
     let agent_addr = IpAddr::from_str(args.value_of("addr")?).ok()?;
     let agent_port = args.value_of("port")?.parse::<u16>().ok()?;
-    let agent_name = agent::LANDMARK_AGENT_NAME.to_string();
+    let agent_name = agent::LANDMARK_NODE_NAME.to_string();
     let log_level = args.value_of("log_level").and_then(|l| parse_log_level(l))?;
     let interface_addr = args.value_of("interface")
         .and_then(|a| a.to_socket_addrs().ok())
         .and_then(|mut a| a.next());
 
-    let config = agent::AgentConfig {
-        agent_addr,
-        agent_port,
-        agent_name,
+    let config = agent::NodeConfig {
+        node_addr: agent_addr,
+        node_port: agent_port,
+        node_name: agent_name,
         interface_addr,
         log_level,
         landmark_addr: None,
@@ -103,10 +103,10 @@ fn main() {
 
             info!(
                 "{} started at {}:{}",
-                config.agent_name, config.agent_addr, config.agent_port
+                config.node_name, config.node_addr, config.node_port
             );
 
-            if let Err(e) = agent::run_landmark_agent(&config) {
+            if let Err(e) = agent::run_landmark(&config) {
                 error!("agent failure: {}", e);
             }
         }

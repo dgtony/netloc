@@ -14,7 +14,7 @@ impl MsgType {
     pub fn to_code(&self) -> u8 {
         match *self {
             MsgType::ProbeRequest => 1,
-            MsgType::ProbeResponse => 12,
+            MsgType::ProbeResponse => 2,
         }
     }
 

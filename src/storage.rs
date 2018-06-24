@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use rand::{seq, Isaac64Rng};
+use rand::{seq, Isaac64Rng, Rng};
 
 use agent::{vivaldi, NodeCoordinates, NodeInfo, NodeList};
 
@@ -76,6 +76,21 @@ impl Storage {
         }
 
         self.nodes.replace(record);
+    }
+
+    /// Try to find random node address in the storage.
+    /// Takes additional address to be added to the list of variants.
+    pub fn random_receiver(
+        &mut self,
+        additional: &SocketAddr,
+    ) -> SocketAddr {
+        let idx: usize = self.rng.gen_range(0, self.nodes.len() + 1);
+        match self.nodes.iter().nth(idx) {
+            Some(node) => {
+                SocketAddr::new(node.info.ip, node.info.port)
+            }
+            None => additional.clone(),
+        }
     }
 
     /// Return 'max_nodes' randomly chosen from all currently known to local node,
