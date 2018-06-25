@@ -1,7 +1,6 @@
 /// Process all incoming UDP packets.
 ///
 /// Possible messages:
-/// - Bootstrap response;
 /// - Location request (foreign);
 /// - Location response (for the local request).
 
@@ -10,37 +9,44 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::net::{SocketAddr, UdpSocket};
 
 use storage::SharedStorage;
-use agent::{AgentType, BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
-use agent::bootstrap::BootstrapResponse;
+use agent::{NodeType, BinarySerializable, MsgType, NodeInfo, GOSSIP_MAX_NEIGHBOURS_IN_MSG};
 use agent::probe::{ProbeRequest, ProbeResponse};
 
 const RCV_BUFF_SIZE: usize = 1500;
 
 pub struct Receiver {
-    agent_type: AgentType,
+    node_type: NodeType,
     name: String,
     store: SharedStorage,
     sock: UdpSocket,
     local_addr: SocketAddr,
+    landmark: Option<SocketAddr>,
 }
 
 impl Receiver {
-    pub fn new(agent_type: AgentType, name: String, store: SharedStorage, sock: UdpSocket) -> Self {
+    pub fn new(
+        node_type: NodeType,
+        name: String,
+        store: SharedStorage,
+        sock: UdpSocket,
+        landmark: Option<SocketAddr>,
+    ) -> Self {
         let local_addr = sock.local_addr().expect("couldn't obtain socket address");
 
         Receiver {
-            agent_type,
+            node_type,
             name,
             store,
             sock,
             local_addr,
+            landmark,
         }
     }
 
     pub fn run(&self) -> io::Result<()> {
-        match self.agent_type {
-            AgentType::Regular => self.run_regular(),
-            AgentType::Landmark => self.run_landmark(),
+        match self.node_type {
+            NodeType::Regular => self.run_regular(),
+            NodeType::Landmark => self.run_landmark(),
         }
     }
 
@@ -53,17 +59,6 @@ impl Receiver {
             let msg_data = &buff[1..msg_len];
 
             match MsgType::from_code(buff[0]) {
-                Some(MsgType::BootstrapResp) => {
-                    debug!("get bootstrap response");
-
-                    // process bootstrap response
-                    BootstrapResponse::deserialize(msg_data).and_then(|msg| {
-                        let mut s = self.store.lock().unwrap(); // should never fail!
-                        msg.neighbours.into_iter().for_each(|n| s.add_node(n));
-                        Some(())
-                    });
-                }
-
                 Some(MsgType::ProbeRequest) => {
                     // respond to foreign request
                     let response = ProbeRequest::deserialize(msg_data).and_then(|request| {
@@ -87,16 +82,18 @@ impl Receiver {
                         if let Some(neighbours) =
                             s.get_random_nodes(
                                 GOSSIP_MAX_NEIGHBOURS_IN_MSG,
-                                &[sender, self.local_addr],
+                                &[sender, self.local_addr, self.landmark.unwrap()],
                             ).and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
                         {
                             response.set_neighbours(neighbours);
                         }
 
                         // store information about sender
-                        let sender_info =
-                            NodeInfo::new(sender.ip(), sender.port(), request.sender_name);
-                        s.add_node(sender_info);
+                        s.add_node(NodeInfo::new(
+                            sender.ip(),
+                            sender.port(),
+                            request.sender_name,
+                        ));
 
                         // save received information about nodes
                         if let Some(neighbours) = request.neighbours {
@@ -142,10 +139,12 @@ impl Receiver {
                         }
 
                         // store information about respondent
-                        let mut respondent_info =
-                            NodeInfo::new(sender.ip(), sender.port(), response.respondent_name);
-                        respondent_info.set_coordinates(&response.location);
-                        s.add_node(respondent_info);
+                        if sender != self.landmark.unwrap() {
+                            let mut respondent_info =
+                                NodeInfo::new(sender.ip(), sender.port(), response.respondent_name);
+                            respondent_info.set_coordinates(&response.location);
+                            s.add_node(respondent_info);
+                        }
 
                         // store info about its neighbours
                         if let Some(neighbours) = response.neighbours {
@@ -190,6 +189,16 @@ impl Receiver {
 
                         // send back original transmission time
                         response.copy_time(&request);
+
+                        // add info about known nodes
+                        if let Some(neighbours) =
+                            s.get_random_nodes(
+                                GOSSIP_MAX_NEIGHBOURS_IN_MSG,
+                                &[sender, self.local_addr],
+                            ).and_then(|nodes| Some(nodes.iter().map(|&n| n.clone()).collect()))
+                        {
+                            response.set_neighbours(neighbours);
+                        }
 
                         // store information about sender
                         let sender_info =

@@ -1,11 +1,11 @@
-//! Location agent
+//! Location nodes
 //!
-//! Regular agents perform all communication between nodes:
+//! Agents perform all communication between nodes:
 //! - RTT probes
 //! - computation of coordinates
 //! - overlay network discovery (Gossip)
 //!
-//! Landmark agent always sustain zero coordinates,
+//! Landmark node always sustain zero coordinates,
 //! only responding to foreign requests, collecting
 //! and spreading information about new nodes.
 //!
@@ -31,32 +31,31 @@ use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::time::Duration;
 
 pub const GOSSIP_MAX_NEIGHBOURS_IN_MSG: usize = 4;
+pub const LANDMARK_NODE_NAME: &str = "landmark";
 
-pub const LANDMARK_AGENT_NAME: &str = "landmark-agent";
-
-pub enum AgentType {
+pub enum NodeType {
     Regular,
     Landmark,
 }
 
 #[derive(Debug)]
-pub struct AgentConfig {
-    pub agent_addr: IpAddr,
-    pub agent_port: u16,
-    pub agent_name: String,
+pub struct NodeConfig {
+    pub node_addr: IpAddr,
+    pub node_port: u16,
+    pub node_name: String,
     pub probe_period: Option<Duration>,
     pub interface_addr: Option<SocketAddr>,
-    pub bootstrap_addr: Option<SocketAddr>,
+    pub landmark_addr: Option<SocketAddr>,
     pub log_level: log::Level,
 }
 
-pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
+pub fn run_agent(config: &NodeConfig) -> io::Result<()> {
     check_interface_addr(config)?;
 
-    let node_name = config.agent_name.clone();
+    let node_name = config.node_name.clone();
 
     // shared parameters
-    let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
+    let sock = UdpSocket::bind((config.node_addr, config.node_port))?;
     let store = Arc::new(Mutex::new(Storage::new()));
 
     // run transmitter in separate thread
@@ -68,10 +67,10 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
             .probe_period
             .expect("probe period not specified")
             .clone();
-        let bootstrap_addr = config.bootstrap_addr.unwrap().clone();
+        let landmark_addr = config.landmark_addr.unwrap().clone();
 
         thread::spawn(move || {
-            let t = Transmitter::new(node_name, bootstrap_addr, store, sock, period);
+            let t = Transmitter::new(node_name, landmark_addr, store, sock, period);
 
             if let Err(e) = t.run() {
                 panic!("agent-transmitter failure: {}", e);
@@ -84,9 +83,10 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
         let node_name = node_name.clone();
         let store = store.clone();
         let sock = sock.try_clone().expect("cannot clone socket");
+        let landmark = config.landmark_addr.clone();
 
         thread::spawn(move || {
-            let r = Receiver::new(AgentType::Regular, node_name, store, sock);
+            let r = Receiver::new(NodeType::Regular, node_name, store, sock, landmark);
             if let Err(e) = r.run() {
                 panic!("agent-receiver failure: {}", e);
             }
@@ -99,7 +99,7 @@ pub fn run_regular_agent(config: &AgentConfig) -> io::Result<()> {
     Ok(())
 }
 
-pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
+pub fn run_landmark(config: &NodeConfig) -> io::Result<()> {
     check_interface_addr(config)?;
 
     let mut store = Storage::new();
@@ -112,13 +112,13 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
     // run receiver in separate thread
     let rx_thread = {
         let store = store.clone();
-        let sock = UdpSocket::bind((config.agent_addr, config.agent_port))?;
-        let agent_name = config.agent_name.clone();
+        let sock = UdpSocket::bind((config.node_addr, config.node_port))?;
+        let name = config.node_name.clone();
 
         thread::spawn(move || {
-            let r = Receiver::new(AgentType::Landmark, agent_name, store, sock);
+            let r = Receiver::new(NodeType::Landmark, name, store, sock, None);
             if let Err(e) = r.run() {
-                panic!("agent failure: {}", e);
+                panic!("node failure: {}", e);
             }
         })
     };
@@ -130,9 +130,12 @@ pub fn run_landmark_agent(config: &AgentConfig) -> io::Result<()> {
 }
 
 
-fn check_interface_addr(config: &AgentConfig) -> io::Result<()> {
+fn check_interface_addr(config: &NodeConfig) -> io::Result<()> {
     match config.interface_addr {
         Some(_) => Ok(()),
-        None => Err(io::Error::new(io::ErrorKind::Other, "bad interface address provided"))
+        None => Err(io::Error::new(
+            io::ErrorKind::Other,
+            "bad interface address provided",
+        )),
     }
 }
