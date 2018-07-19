@@ -17,7 +17,7 @@ Each netloc-driven overlay includes single mandatory infrastructure node called 
 
 ### Network coordinates
 
-![comm](./overlay.png)
+<img src="doc/overlay.png" alt="Network coordinates in overlay"/>
 
 Coordinate space is constructed with special non-euclidean metric, consisting of two linear dimensions denoted as`X1`, `X2` and additional height dimension `h`. For any two points with coordinates `p1(X1_1, X2_1, h_1)` and `p2(X1_2, X2_2, h_2)` distance  in given metric space could be computed as follows:
 
